@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*.db
+*.db-wal
+*.db-shm
+.env
+.venv/
+.npm-cache/
+tools/node_modules/
+*.tar.gz

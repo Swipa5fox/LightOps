@@ -1,0 +1,9 @@
+{
+  "name": "lightops-frontend-tools",
+  "private": true,
+  "version": "0.1.1",
+  "type": "module",
+  "dependencies": {
+    "@vue/compiler-dom": "3.5.17"
+  }
+}

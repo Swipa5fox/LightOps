@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>LightOps · 轻量运维控制台</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="app" v-cloak>
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"><span></span></div>
+          <div>
+            <div class="brand-title">LightOps</div>
+            <div class="brand-subtitle">轻量运维控制台</div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span class="muted" aria-live="polite">最后更新 {{ updatedAt || "等待数据" }}</span>
+          <button type="button" class="ghost-button" @click="saveToken">管理令牌</button>
+          <button
+            type="button"
+            class="primary-button"
+            :disabled="loading"
+            :aria-busy="loading"
+            @click="refresh"
+          >
+            {{ loading ? "刷新中" : "刷新" }}
+          </button>
+        </div>
+      </header>
+
+      <main class="page-shell">
+        <section class="hero" aria-labelledby="page-title">
+          <div>
+            <div class="eyebrow">SYSTEM OVERVIEW</div>
+            <div class="hero-heading">
+              <h1 id="page-title">轻量服务器监控系统</h1>
+              <span class="environment-badge">LIGHTOPS</span>
+            </div>
+            <p class="host-summary">
+              <span>{{ host.cloud_provider || "云服务器" }}</span>
+              <span>{{ host.cpu_count || "--" }} 核 CPU</span>
+              <span>{{ formatHardwareCapacity(host.memory_total) }} 内存</span>
+              <span>{{ formatHardwareCapacity(host.disk_total) }} 系统盘</span>
+              <span>{{ host.os_name || "Linux" }}</span>
+            </p>
+          </div>
+          <div class="hero-status">
+            <span
+              class="status-badge"
+              :class="{ healthy: updatedAt && !error, pending: !updatedAt && !error }"
+              role="status"
+              aria-live="polite"
+            >
+              {{ error ? "数据异常" : (updatedAt ? "系统运行中" : "正在连接") }}
+            </span>
+            <span class="muted">v{{ summary.version || "0.1.1" }}</span>
+          </div>
+        </section>
+
+        <div v-if="error" class="error-banner" role="alert">{{ error }}</div>
+
+        <section class="metric-grid" aria-label="资源概览">
+          <article class="metric-card cpu-card">
+            <div class="metric-card-head">
+              <div class="metric-label">处理器负载</div>
+              <span class="metric-state" :class="cpuStatusClass">{{ cpuStatus }}</span>
+            </div>
+            <div class="metric-value">{{ formatPercent(metric.cpu_percent) }}</div>
+            <div class="processor-spec">
+              {{ host.cpu_count || "--" }} 核 CPU
+            </div>
+            <div
+              class="progress-track"
+              role="progressbar"
+              aria-label="CPU 使用率"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-valuenow="Number.isFinite(Number(metric.cpu_percent)) ? clampNumber(metric.cpu_percent) : undefined"
+              :aria-valuetext="formatPercent(metric.cpu_percent)"
+            >
+              <span :style="{ width: clampPercent(metric.cpu_percent) }"></span>
+            </div>
+            <div class="metric-foot">当前整体 CPU 占用 · 每 60 秒采样</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <div class="metric-label">内存使用情况</div>
+              <span class="metric-state" :class="statusClass(metric.memory_percent)">{{ statusLabel(metric.memory_percent) }}</span>
+            </div>
+            <div class="metric-value">{{ formatPercent(metric.memory_percent) }}</div>
+            <div class="capacity-details">
+              <strong>{{ formatBytes(host.memory_used) }}</strong>
+              <span>/ {{ formatBytes(host.memory_total) }}</span>
+            </div>
+            <div
+              class="progress-track violet"
+              role="progressbar"
+              aria-label="内存使用率"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-valuenow="Number.isFinite(Number(metric.memory_percent)) ? clampNumber(metric.memory_percent) : undefined"
+              :aria-valuetext="formatPercent(metric.memory_percent)"
+            >
+              <span :style="{ width: clampPercent(metric.memory_percent) }"></span>
+            </div>
+            <div class="metric-foot">当前可用 {{ formatBytes(host.memory_available) }}</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <div class="metric-label">系统盘使用情况</div>
+              <span class="metric-state" :class="statusClass(metric.disk_percent)">{{ statusLabel(metric.disk_percent) }}</span>
+            </div>
+            <div class="metric-value">{{ formatPercent(metric.disk_percent) }}</div>
+            <div class="capacity-details">
+              <strong>{{ formatBytes(host.disk_used) }}</strong>
+              <span>/ {{ formatBytes(host.disk_total) }}</span>
+            </div>
+            <div
+              class="progress-track amber"
+              role="progressbar"
+              aria-label="磁盘使用率"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-valuenow="Number.isFinite(Number(metric.disk_percent)) ? clampNumber(metric.disk_percent) : undefined"
+              :aria-valuetext="formatPercent(metric.disk_percent)"
+            >
+              <span :style="{ width: clampPercent(metric.disk_percent) }"></span>
+            </div>
+            <div class="metric-foot">剩余空间 {{ formatBytes(host.disk_free) }}</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">活动告警</div>
+            <div class="metric-value">{{ alerts.length }}</div>
+            <div class="alert-summary" :class="{ clear: alerts.length === 0 }">
+              {{ alerts.length ? "需要关注" : "当前无异常" }}
+            </div>
+            <div class="metric-foot">{{ servicesUp }} / {{ services.length }} 服务正常</div>
+          </article>
+        </section>
+
+        <section class="panel trend-panel" aria-labelledby="trend-title">
+          <div class="panel-head">
+            <div>
+              <div class="eyebrow">RESOURCE TREND</div>
+              <h2 id="trend-title">资源趋势</h2>
+            </div>
+            <div class="segment-control" aria-label="趋势时间范围">
+              <button
+                type="button"
+                v-for="item in ranges"
+                :key="item.value"
+                :class="{ active: range === item.value }"
+                :aria-pressed="range === item.value"
+                @click="setRange(item.value)"
+              >
+                {{ item.label }}
+              </button>
+            </div>
+          </div>
+          <div class="trend-summary">
+            <span><strong>{{ history.length }}</strong> 个采样点</span>
+            <span>每 60 秒采集一次</span>
+            <span>CPU / 内存 / 磁盘</span>
+          </div>
+          <div v-if="history.length" class="trend-stats">
+            <div v-for="card in trendCards" :key="card.key" class="trend-stat-card">
+              <div class="trend-stat-name">
+                <span class="trend-dot" :class="card.key"></span>
+                {{ card.label }}
+              </div>
+              <strong>{{ formatPercent(card.current) }}</strong>
+              <small>最低 {{ formatPercent(card.minimum) }} · 最高 {{ formatPercent(card.maximum) }}</small>
+            </div>
+          </div>
+          <div
+            v-if="history.length"
+            class="svg-chart-shell"
+            @mousemove="updateTrendHover"
+            @mouseleave="clearTrendHover"
+          >
+            <div class="chart-y-axis">
+              <span>100%</span>
+              <span>75%</span>
+              <span>50%</span>
+              <span>25%</span>
+              <span>0%</span>
+            </div>
+            <svg
+              ref="trendSvg"
+              class="trend-svg"
+              viewBox="0 0 1000 260"
+              preserveAspectRatio="none"
+              role="img"
+              aria-label="CPU、内存和磁盘使用率趋势"
+              aria-describedby="trend-description"
+              tabindex="0"
+            >
+              <g class="trend-grid">
+                <line x1="0" y1="0" x2="1000" y2="0"></line>
+                <line x1="0" y1="65" x2="1000" y2="65"></line>
+                <line x1="0" y1="130" x2="1000" y2="130"></line>
+                <line x1="0" y1="195" x2="1000" y2="195"></line>
+                <line x1="0" y1="260" x2="1000" y2="260"></line>
+              </g>
+              <polyline :points="chartPoints('cpu_percent')" class="trend-line cpu"></polyline>
+              <polyline :points="chartPoints('memory_percent')" class="trend-line memory"></polyline>
+              <polyline :points="chartPoints('disk_percent')" class="trend-line disk"></polyline>
+              <g v-if="trendHover" class="trend-hover-layer">
+                <line :x1="trendHover.x" y1="0" :x2="trendHover.x" y2="260" class="trend-hover-line"></line>
+                <circle :cx="trendHover.x" :cy="trendHover.cpuY" r="5" class="trend-hover-point cpu"></circle>
+                <circle :cx="trendHover.x" :cy="trendHover.memoryY" r="5" class="trend-hover-point memory"></circle>
+                <circle :cx="trendHover.x" :cy="trendHover.diskY" r="5" class="trend-hover-point disk"></circle>
+              </g>
+            </svg>
+            <div
+              v-if="trendHover"
+              class="trend-tooltip"
+              :style="{ left: trendHover.tooltipLeft + 'px' }"
+              aria-hidden="true"
+            >
+              <strong>{{ formatHoverTime(trendHover.ts) }}</strong>
+              <span><i class="cpu"></i>CPU {{ formatPercent(trendHover.cpu) }}</span>
+              <span><i class="memory"></i>内存 {{ formatPercent(trendHover.memory) }}</span>
+              <span><i class="disk"></i>磁盘 {{ formatPercent(trendHover.disk) }}</span>
+            </div>
+            <div class="chart-time-axis">
+              <span>{{ trendStartLabel }}</span>
+              <span>{{ trendEndLabel }}</span>
+            </div>
+          </div>
+          <div v-else class="chart-empty">
+            正在等待这个时间范围内的监控数据
+          </div>
+          <p id="trend-description" class="sr-only" aria-live="polite">
+            {{ trendDescription }}
+          </p>
+        </section>
+
+        <section class="two-column">
+          <article class="panel" aria-labelledby="services-title">
+            <div class="panel-head compact">
+              <div>
+                <div class="eyebrow">SERVICE HEALTH</div>
+                <h2 id="services-title">服务状态</h2>
+              </div>
+            </div>
+            <div class="service-list">
+              <div v-for="service in services" :key="service.service" class="service-row">
+                <div class="service-name">
+                  <span class="service-dot" :class="{ up: service.status === 'active' }"></span>
+                  <div>
+                    <strong>{{ service.service }}</strong>
+                    <small>{{ service.status }}</small>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="small-button"
+                  :disabled="restartBusy === service.service"
+                  @click="restartService(service.service)"
+                >
+                  {{ restartBusy === service.service ? "处理中" : "重启" }}
+                </button>
+              </div>
+              <div v-if="!services.length" class="empty-state">等待服务采样</div>
+            </div>
+          </article>
+
+          <article class="panel" aria-labelledby="alerts-title">
+            <div class="panel-head compact">
+              <div>
+                <div class="eyebrow">ACTIVE ALERTS</div>
+                <h2 id="alerts-title">当前告警</h2>
+              </div>
+              <button type="button" class="text-button" @click="runMaintenance">立即备份</button>
+            </div>
+            <div class="alert-list">
+              <div v-for="alert in alerts" :key="alert.id" class="alert-row">
+                <span class="alert-icon">!</span>
+                <div>
+                  <strong>{{ alert.message }}</strong>
+                  <small>{{ formatTime(alert.created_at) }}</small>
+                </div>
+              </div>
+              <div v-if="!alerts.length" class="empty-state success">
+                <span>✓</span> 当前没有活动告警
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <footer>
+          <span>LightOps · FastAPI / Vue 3 / SVG</span>
+          <span>指标每 60 秒采集 · 保留 7 天</span>
+        </footer>
+      </main>
+    </div>
+
+    <script src="/vendor/vue.global.prod.js" defer></script>
+    <script src="/render.js" defer></script>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

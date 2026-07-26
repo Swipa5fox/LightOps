@@ -1,0 +1,33 @@
+[Unit]
+Description=LightOps monitoring and operations API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lightops
+Group=lightops
+WorkingDirectory=/opt/lightops
+EnvironmentFile=/etc/lightops/lightops.env
+ExecStart=/opt/lightops/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1 --no-access-log
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+MemoryMax=400M
+TasksMax=128
+UMask=0027
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectKernelLogs=true
+ReadWritePaths=/var/lib/lightops
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
