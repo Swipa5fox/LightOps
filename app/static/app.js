@@ -209,9 +209,7 @@
             this.refreshRequested = true;
           }
           this.trendHover = null;
-          this.updatedAt = new Date().toLocaleTimeString("zh-CN", {
-            hour12: false
-          });
+          this.updatedAt = this.formatCurrentDate();
         } catch (error) {
           this.error = error.message || "无法加载监控数据";
         } finally {
@@ -381,7 +379,7 @@
       formatPercent: function (value) {
         return typeof value === "number" ? value.toFixed(1) + "%" : "--";
       },
-      clampPercent: function (value) {
+      clampPercent: function () {
         return this.clampNumber(value) + "%";
       },
       clampNumber: function (value) {
@@ -431,6 +429,13 @@
       },
       formatTime: function (value) {
         return value ? new Date(value).toLocaleString("zh-CN", { hour12: false }) : "--";
+      },
+      formatCurrentDate: function () {
+        var now = new Date();
+        var year = now.getFullYear();
+        var month = String(now.getMonth() + 1).padStart(2, "0");
+        var day = String(now.getDate()).padStart(2, "0");
+        return year + "年" + month + "月" + day + "日";
       }
     }
   }).mount("#app");
