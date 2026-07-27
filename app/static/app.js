@@ -168,7 +168,7 @@
           signal: controller.signal
         });
         try {
-          var response = await window.fetch(url, options);
+          var response = await window.fetch(url, requestOptions);
           var body = await response.json().catch(function () {
             return {};
           });
