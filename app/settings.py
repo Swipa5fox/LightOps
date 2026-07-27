@@ -19,6 +19,16 @@ def _env_float(name: str, default: float) -> float:
         raise RuntimeError(f"{name} must be a number") from exc
 
 
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be an integer") from exc
+
+
 def _services() -> tuple[str, ...]:
     values = tuple(
         item.strip()
@@ -45,13 +55,9 @@ class Settings:
     )
     sudo_path: str = os.getenv("LIGHTOPS_SUDO_PATH", "/usr/bin/sudo")
     services: tuple[str, ...] = _services()
-    collect_interval_seconds: int = int(
-        os.getenv("LIGHTOPS_COLLECT_INTERVAL", "60")
-    )
-    retention_days: int = int(os.getenv("LIGHTOPS_RETENTION_DAYS", "7"))
-    alert_cooldown_minutes: int = int(
-        os.getenv("LIGHTOPS_ALERT_COOLDOWN_MINUTES", "15")
-    )
+    collect_interval_seconds: int = _env_int("LIGHTOPS_COLLECT_INTERVAL", 60)
+    retention_days: int = _env_int("LIGHTOPS_RETENTION_DAYS", 7)
+    alert_cooldown_minutes: int = _env_int("LIGHTOPS_ALERT_COOLDOWN_MINUTES", 15)
     cpu_threshold: float = _env_float("LIGHTOPS_CPU_THRESHOLD", 85.0)
     memory_threshold: float = _env_float("LIGHTOPS_MEMORY_THRESHOLD", 85.0)
     disk_threshold: float = _env_float("LIGHTOPS_DISK_THRESHOLD", 80.0)
