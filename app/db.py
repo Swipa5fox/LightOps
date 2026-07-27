@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS service_samples (
     ts TEXT NOT NULL,
     service TEXT NOT NULL,
     status TEXT NOT NULL,
-    detail TEXT NOT NULL DEFAULT ''
+    detail TEXT NOT NULL DEFAULT '',
+    buckets TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_service_samples_ts
     ON service_samples(ts, service);
@@ -90,9 +91,21 @@ def init_db() -> None:
         # are still applied in connect().
         conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(SCHEMA)
+        # Migration: add buckets column to existing databases created before
+        # the bucket detection feature was introduced.
+        columns = [
+            row[1]
+            for row in conn.execute(
+                "PRAGMA table_info(service_samples)"
+            ).fetchall()
+        ]
+        if "buckets" not in columns:
+            conn.execute(
+                "ALTER TABLE service_samples ADD COLUMN buckets TEXT"
+            )
 
 
-def insert_sample(metric: dict[str, Any], services: list[dict[str, str]]) -> None:
+def insert_sample(metric: dict[str, Any], services: list[dict[str, Any]]) -> None:
     with connect() as conn:
         conn.execute(
             """
@@ -115,11 +128,17 @@ def insert_sample(metric: dict[str, Any], services: list[dict[str, str]]) -> Non
         )
         conn.executemany(
             """
-            INSERT INTO service_samples (ts, service, status, detail)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO service_samples (ts, service, status, detail, buckets)
+            VALUES (?, ?, ?, ?, ?)
             """,
             [
-                (metric["ts"], item["service"], item["status"], item["detail"])
+                (
+                    metric["ts"],
+                    item["service"],
+                    item["status"],
+                    item["detail"],
+                    json.dumps(item.get("buckets") or []),
+                )
                 for item in services
             ],
         )
@@ -137,7 +156,7 @@ def latest_services() -> list[dict[str, Any]]:
     with connect() as conn:
         rows = conn.execute(
             """
-            SELECT s.ts, s.service, s.status, s.detail
+            SELECT s.ts, s.service, s.status, s.detail, s.buckets
             FROM service_samples AS s
             INNER JOIN (
                 SELECT service, MAX(ts) AS max_ts
@@ -148,7 +167,19 @@ def latest_services() -> list[dict[str, Any]]:
             ORDER BY s.service
             """
         ).fetchall()
-    return [dict(row) for row in rows]
+    values = []
+    for row in rows:
+        item = dict(row)
+        raw_buckets = item.get("buckets")
+        if raw_buckets:
+            try:
+                item["buckets"] = json.loads(raw_buckets)
+            except json.JSONDecodeError:
+                item["buckets"] = []
+        else:
+            item["buckets"] = []
+        values.append(item)
+    return values
 
 
 def metric_history(minutes: int, max_points: int = 720) -> list[dict[str, Any]]:
