@@ -74,7 +74,6 @@ def connect() -> Iterator[sqlite3.Connection]:
     database.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(database, timeout=15)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("PRAGMA busy_timeout=15000")
     try:
@@ -86,6 +85,10 @@ def connect() -> Iterator[sqlite3.Connection]:
 
 def init_db() -> None:
     with connect() as conn:
+        # WAL mode is persisted in the database file header, so setting it once
+        # here is sufficient; per-connection PRAGMAs (foreign_keys, busy_timeout)
+        # are still applied in connect().
+        conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(SCHEMA)
 
 
