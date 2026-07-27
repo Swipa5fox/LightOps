@@ -49,6 +49,11 @@ def operating_system_name() -> str:
     return platform.system() or "Linux"
 
 
+# OS name does not change during the process lifetime; read it once at import
+# time instead of hitting /etc/os-release on every /api/summary request.
+OS_NAME = operating_system_name()
+
+
 def require_token(
     authorization: Annotated[Optional[str], Header()] = None,
 ) -> None:
@@ -180,7 +185,7 @@ def summary() -> dict:
             "disk_total": disk.total,
             "disk_used": disk.used,
             "disk_free": disk.free,
-            "os_name": operating_system_name(),
+            "os_name": OS_NAME,
             "kernel_release": platform.release(),
         },
         "version": __version__,
