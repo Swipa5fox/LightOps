@@ -100,18 +100,19 @@ const _hoisted_52 = {
 }
 const _hoisted_53 = { class: "service-list" }
 const _hoisted_54 = { class: "service-name" }
-const _hoisted_55 = ["disabled", "onClick"]
-const _hoisted_56 = {
+const _hoisted_55 = ["title"]
+const _hoisted_56 = ["disabled", "onClick"]
+const _hoisted_57 = {
   key: 0,
   class: "empty-state"
 }
-const _hoisted_57 = {
+const _hoisted_58 = {
   class: "panel",
   "aria-labelledby": "alerts-title"
 }
-const _hoisted_58 = { class: "panel-head compact" }
-const _hoisted_59 = { class: "alert-list" }
-const _hoisted_60 = {
+const _hoisted_59 = { class: "panel-head compact" }
+const _hoisted_60 = { class: "alert-list" }
+const _hoisted_61 = {
   key: 0,
   class: "empty-state success"
 }
@@ -419,7 +420,16 @@ return function render(_ctx, _cache) {
                     class: _normalizeClass(["service-dot", { up: service.status === 'active' }])
                   }, null, 2 /* CLASS */),
                   _createElementVNode("div", null, [
-                    _createElementVNode("strong", null, _toDisplayString(service.service), 1 /* TEXT */),
+                    _createElementVNode("strong", null, [
+                      _createTextVNode(_toDisplayString(service.service), 1 /* TEXT */),
+                      (service.buckets && service.buckets.length)
+                        ? (_openBlock(), _createElementBlock("span", {
+                            key: 0,
+                            class: "service-bucket",
+                            title: service.buckets.join('\n')
+                          }, " [" + _toDisplayString(service.buckets.join(', ')) + "]", 9 /* TEXT, PROPS */, _hoisted_55))
+                        : _createCommentVNode("v-if", true)
+                    ]),
                     _createElementVNode("small", null, _toDisplayString(service.status), 1 /* TEXT */)
                   ])
                 ]),
@@ -428,16 +438,16 @@ return function render(_ctx, _cache) {
                   class: "small-button",
                   disabled: _ctx.restartBusy === service.service,
                   onClick: $event => (_ctx.restartService(service.service))
-                }, _toDisplayString(_ctx.restartBusy === service.service ? "处理中" : "重启"), 9 /* TEXT, PROPS */, _hoisted_55)
+                }, _toDisplayString(_ctx.restartBusy === service.service ? "处理中" : "重启"), 9 /* TEXT, PROPS */, _hoisted_56)
               ]))
             }), 128 /* KEYED_FRAGMENT */)),
             (!_ctx.services.length)
-              ? (_openBlock(), _createElementBlock("div", _hoisted_56, "等待服务采样"))
+              ? (_openBlock(), _createElementBlock("div", _hoisted_57, "等待服务采样"))
               : _createCommentVNode("v-if", true)
           ])
         ]),
-        _createElementVNode("article", _hoisted_57, [
-          _createElementVNode("div", _hoisted_58, [
+        _createElementVNode("article", _hoisted_58, [
+          _createElementVNode("div", _hoisted_59, [
             _cache[24] || (_cache[24] = _createElementVNode("div", null, [
               _createElementVNode("div", { class: "eyebrow" }, "ACTIVE ALERTS"),
               _createElementVNode("h2", { id: "alerts-title" }, "当前告警")
@@ -448,7 +458,7 @@ return function render(_ctx, _cache) {
               onClick: _cache[4] || (_cache[4] = (...args) => (_ctx.runMaintenance && _ctx.runMaintenance(...args)))
             }, "立即备份")
           ]),
-          _createElementVNode("div", _hoisted_59, [
+          _createElementVNode("div", _hoisted_60, [
             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.alerts, (alert) => {
               return (_openBlock(), _createElementBlock("div", {
                 key: alert.id,
@@ -462,7 +472,7 @@ return function render(_ctx, _cache) {
               ]))
             }), 128 /* KEYED_FRAGMENT */)),
             (!_ctx.alerts.length)
-              ? (_openBlock(), _createElementBlock("div", _hoisted_60, _cache[26] || (_cache[26] = [
+              ? (_openBlock(), _createElementBlock("div", _hoisted_61, _cache[26] || (_cache[26] = [
                   _createElementVNode("span", null, "✓", -1 /* CACHED */),
                   _createTextVNode(" 当前没有活动告警 ")
                 ])))
