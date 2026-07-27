@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+import re
 import subprocess
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import psutil
@@ -14,6 +16,14 @@ from .settings import settings
 logger = logging.getLogger("lightops.collector")
 _consecutive: dict[str, int] = {}
 
+_BUCKET_PATTERN = re.compile(r"(?:s3|cos|oss|gs)://[A-Za-z0-9._\-]+")
+_UNIT_FILE_CANDIDATES = (
+    "/etc/systemd/system/{service}.service",
+    "/usr/lib/systemd/system/{service}.service",
+    "/lib/systemd/system/{service}.service",
+)
+_ENV_FILE_PATTERN = re.compile(r"^\s*EnvironmentFile\s*=\s*(\S+)", re.MULTILINE)
+
 
 def _systemctl(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
@@ -24,6 +34,43 @@ def _systemctl(*args: str) -> subprocess.CompletedProcess[str]:
         check=False,
         env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C"},
     )
+
+
+def _read_text(path: str) -> str:
+    try:
+        return Path(path).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+
+
+def _detect_buckets(service: str) -> list[str]:
+    """Find bucket URLs in a service's systemd unit file.
+
+    Reads the unit definition and any EnvironmentFile referenced by it, then
+    extracts the first occurrence of each scheme://bucket style URL. Returns
+    an empty list when nothing matches or the unit file is unreadable.
+    """
+    unit_content = ""
+    for template in _UNIT_FILE_CANDIDATES:
+        path = template.format(service=service)
+        content = _read_text(path)
+        if content:
+            unit_content = content
+            break
+    if not unit_content:
+        return []
+
+    text = unit_content
+    for match in _ENV_FILE_PATTERN.finditer(unit_content):
+        env_path = match.group(1).strip().strip('"').strip("'")
+        if env_path.startswith("-"):
+            env_path = env_path[1:]
+        if not env_path.startswith("/"):
+            continue
+        text += "\n" + _read_text(env_path)
+
+    # Preserve first-seen order while deduplicating.
+    return list(dict.fromkeys(_BUCKET_PATTERN.findall(text)))
 
 
 def service_states() -> list[dict[str, str]]:
@@ -41,6 +88,7 @@ def service_states() -> list[dict[str, str]]:
                 "service": service,
                 "status": status[:64],
                 "detail": detail[:500],
+                "buckets": _detect_buckets(service),
             }
         )
     return values
@@ -56,7 +104,7 @@ def read_metrics() -> dict[str, Any]:
         "disk_percent": round(psutil.disk_usage("/").percent, 2),
         "load_1": round(load[0], 2),
         "load_5": round(load[1], 2),
-        "load_15": round(load[2], 2),
+        "load_15": round(load[15], 2),
         "net_bytes_sent": int(network.bytes_sent),
         "net_bytes_recv": int(network.bytes_recv),
     }
