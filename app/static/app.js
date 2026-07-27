@@ -168,7 +168,7 @@
           signal: controller.signal
         });
         try {
-          var response = await window.fetch(url, requestOptions);
+          var response = await window.fetch(url, options);
           var body = await response.json().catch(function () {
             return {};
           });
@@ -435,7 +435,10 @@
         var year = now.getFullYear();
         var month = String(now.getMonth() + 1).padStart(2, "0");
         var day = String(now.getDate()).padStart(2, "0");
-        return year + "年" + month + "月" + day + "日";
+        var hour = String(now.getHours()).padStart(2, "0");
+        var minute = String(now.getMinutes()).padStart(2, "0");
+        var second = String(now.getSeconds()).padStart(2, "0");
+        return year + "年" + month + "月" + day + "日 " + hour + ":" + minute + ":" + second;
       }
     }
   }).mount("#app");
