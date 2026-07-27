@@ -104,7 +104,7 @@ def read_metrics() -> dict[str, Any]:
         "disk_percent": round(psutil.disk_usage("/").percent, 2),
         "load_1": round(load[0], 2),
         "load_5": round(load[1], 2),
-        "load_15": round(load[15], 2),
+        "load_15": round(load[2], 2),
         "net_bytes_sent": int(network.bytes_sent),
         "net_bytes_recv": int(network.bytes_recv),
     }
