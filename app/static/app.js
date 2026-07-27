@@ -379,7 +379,7 @@
       formatPercent: function (value) {
         return typeof value === "number" ? value.toFixed(1) + "%" : "--";
       },
-      clampPercent: function () {
+      clampPercent: function (value) {
         return this.clampNumber(value) + "%";
       },
       clampNumber: function (value) {
