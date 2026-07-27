@@ -254,7 +254,11 @@
                 <div class="service-name">
                   <span class="service-dot" :class="{ up: service.status === 'active' }"></span>
                   <div>
-                    <strong>{{ service.service }}</strong>
+                    <strong>{{ service.service }}<span
+                      v-if="service.buckets && service.buckets.length"
+                      class="service-bucket"
+                      :title="service.buckets.join('\n')"
+                    > [{{ service.buckets.join(', ') }}]</span></strong>
                     <small>{{ service.status }}</small>
                   </div>
                 </div>
