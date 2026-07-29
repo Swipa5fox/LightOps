@@ -58,6 +58,8 @@ jobs:
           archive="${{ steps.release.outputs.archive }}"
 
           if ! git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git tag -a "$tag" -m "LightOps ${version}"
             git push origin "$tag"
           fi
