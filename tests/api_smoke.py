@@ -21,7 +21,7 @@ if os.name == "nt":
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from app import db  # noqa: E402
+from app import db, weather  # noqa: E402
 from app.main import app  # noqa: E402
 
 
@@ -40,6 +40,45 @@ with TestClient(app) as client:
     assert summary.json()["host"]["memory_total"] > 0
     assert summary.json()["host"]["disk_total"] > 0
     assert summary.json()["host"]["os_name"]
+
+    original_weather_fetch = weather._fetch_remote
+    weather._CACHE.clear()
+    weather._fetch_remote = lambda latitude, longitude: {
+        "timezone": "Asia/Shanghai",
+        "timezone_abbreviation": "GMT+8",
+        "current": {
+            "time": "2026-07-29T02:30",
+            "temperature_2m": 28.4,
+            "apparent_temperature": 31.2,
+            "relative_humidity_2m": 74,
+            "weather_code": 2,
+            "wind_speed_10m": 8.6,
+            "is_day": 1,
+        },
+        "daily": {
+            "time": ["2026-07-29"],
+            "weather_code": [2],
+            "temperature_2m_max": [32.1],
+            "temperature_2m_min": [25.7],
+            "precipitation_probability_max": [35],
+            "sunrise": ["2026-07-29T05:44"],
+            "sunset": ["2026-07-29T19:07"],
+        },
+    }
+    try:
+        forecast = client.get(
+            "/api/weather", params={"latitude": 23.1291, "longitude": 113.2644}
+        )
+    finally:
+        weather._fetch_remote = original_weather_fetch
+        weather._CACHE.clear()
+    assert forecast.status_code == 200, forecast.text
+    assert forecast.json()["location_label"] == "当前位置"
+    assert forecast.json()["current"]["temperature"] == 28.4
+    assert forecast.json()["today"]["temperature_max"] == 32.1
+    assert client.get(
+        "/api/weather", params={"latitude": 91, "longitude": 113}
+    ).status_code == 422
 
     metrics = client.get("/api/metrics", params={"range": "1h"})
     assert metrics.status_code == 200, metrics.text

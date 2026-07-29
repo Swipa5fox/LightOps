@@ -3,7 +3,9 @@
 
   var createApp = window.Vue.createApp;
   var TOKEN_KEY = "lightops_api_token";
+  var WEATHER_PLACE_KEY = "lightops_weather_place";
   var REQUEST_TIMEOUT_MS = 10000;
+  var WEATHER_REFRESH_MS = 30 * 60 * 1000;
 
   function readToken() {
     try {
@@ -42,6 +44,26 @@
     }
   }
 
+  function readWeatherPlace() {
+    try {
+      return window.sessionStorage.getItem(WEATHER_PLACE_KEY) || "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function writeWeatherPlace(place) {
+    try {
+      if (place) {
+        window.sessionStorage.setItem(WEATHER_PLACE_KEY, place);
+      } else {
+        window.sessionStorage.removeItem(WEATHER_PLACE_KEY);
+      }
+    } catch (error) {
+      // Weather still works when session storage is unavailable.
+    }
+  }
+
   createApp({
     render: window.LightOpsRender,
     data: function () {
@@ -61,7 +83,12 @@
         error: "",
         trendHover: null,
         refreshTimer: null,
-        refreshRequested: false
+        refreshRequested: false,
+        weather: null,
+        weatherLoading: false,
+        weatherError: "",
+        weatherPlace: "",
+        weatherTimer: null
       };
     },
     computed: {
@@ -144,20 +171,200 @@
             "，最低 " + this.formatPercent(card.minimum) +
             "，最高 " + this.formatPercent(card.maximum);
         }.bind(this)).join("；");
+      },
+      weatherCode: function () {
+        if (!this.weather) {
+          return null;
+        }
+        var current = this.weather.current || {};
+        var today = this.weather.today || {};
+        return Number.isFinite(Number(current.weather_code))
+          ? Number(current.weather_code)
+          : Number(today.weather_code);
+      },
+      weatherKind: function () {
+        return this.weatherKindForCode(this.weatherCode);
+      },
+      qweatherCode: function () {
+        var code = Number(this.weatherCode);
+        var isDay = this.weather && this.weather.current ? this.weather.current.is_day !== false : true;
+        if (!Number.isFinite(code)) {
+          return isDay ? 100 : 150;
+        }
+        return this.qweatherCodeForCode(code, isDay);
+      },
+      weatherLabel: function () {
+        var labels = {
+          clear: "晴朗",
+          partlyCloudy: "晴间多云",
+          cloudy: "多云",
+          fog: "有雾",
+          drizzle: "细雨",
+          rain: "有雨",
+          snow: "有雪",
+          storm: "雷暴"
+        };
+        return labels[this.weatherKind] || "天气未知";
+      },
+      weatherTip: function () {
+        if (!this.weather) {
+          return "";
+        }
+        var tip = this.weather.tip;
+        return typeof tip === "string" ? tip : "";
+      },
+      weatherCandidates: function () {
+        if (!this.weather || !Array.isArray(this.weather.candidates)) {
+          return [];
+        }
+        return this.weather.candidates;
+      },
+      activeCandidateLabel: function () {
+        if (this.weather && typeof this.weather.location_label === "string") {
+          return this.weather.location_label;
+        }
+        return "";
       }
     },
-    mounted: function () {
-      migrateLegacyToken();
-      this.refresh();
-      this.refreshTimer = window.setInterval(this.refresh, 30000);
-    },
-    beforeUnmount: function () {
-      window.clearInterval(this.refreshTimer);
-    },
+      mounted: function () {
+        migrateLegacyToken();
+        this.refresh();
+        this.initializeWeather();
+        this.refreshTimer = window.setInterval(this.refresh, 30000);
+        this.weatherTimer = window.setInterval(this.refreshWeather, WEATHER_REFRESH_MS);
+      },
+      beforeUnmount: function () {
+        window.clearInterval(this.refreshTimer);
+        window.clearInterval(this.weatherTimer);
+      },
     methods: {
       authHeaders: function () {
         var token = readToken();
         return token ? { Authorization: "Bearer " + token } : {};
+      },
+      initializeWeather: function () {
+        this.weatherPlace = readWeatherPlace();
+        if (this.weatherPlace) {
+          this.refreshWeather();
+        }
+      },
+      pickDistrict: async function (candidate) {
+        if (!candidate || this.weatherLoading) {
+          return;
+        }
+        this.weatherLoading = true;
+        this.weatherError = "";
+        try {
+          var lat = Number(candidate.latitude);
+          var lon = Number(candidate.longitude);
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+            throw new Error("坐标无效");
+          }
+          // The lat/lon endpoint returns no district candidates; cache the
+          // city-wide list so the district picker stays visible after refining.
+          var previousCandidates = this.weather && Array.isArray(this.weather.candidates)
+            ? this.weather.candidates
+            : [];
+          var response = await this.fetchJson(
+            "/api/weather?latitude=" + lat + "&longitude=" + lon
+          );
+          if (
+            previousCandidates.length > 1 &&
+            (!Array.isArray(response.candidates) ||
+              response.candidates.length < previousCandidates.length)
+          ) {
+            response.candidates = previousCandidates;
+          }
+          // The lat/lon endpoint labels the location "当前位置"; substitute the
+          // picked district's label so the picker and emblem show e.g.
+          // "广州-海珠区".
+          if (candidate.label) {
+            response.location_label = candidate.label;
+          }
+          this.weather = response;
+        } catch (error) {
+          this.weatherError = error.message || "天气数据暂时不可用";
+        } finally {
+          this.weatherLoading = false;
+        }
+      },
+      searchWeather: function () {
+        var place = (this.weatherPlace || "").trim();
+        if (!place) {
+          this.weatherError = "请输入城市名称";
+          return;
+        }
+        writeWeatherPlace(place);
+        this.refreshWeather();
+      },
+      refreshWeather: async function () {
+        var place = (this.weatherPlace || "").trim();
+        if (!place || this.weatherLoading) {
+          return;
+        }
+        this.weatherLoading = true;
+        this.weatherError = "";
+        try {
+          this.weather = await this.fetchJson(
+            "/api/weather?place=" + encodeURIComponent(place)
+          );
+        } catch (error) {
+          this.weatherError = error.message || "天气数据暂时不可用";
+        } finally {
+          this.weatherLoading = false;
+        }
+      },
+      weatherKindForCode: function (value) {
+        var code = Number(value);
+        if (!Number.isFinite(code)) {
+          return "unknown";
+        }
+        if (code === 0) return "clear";
+        if (code === 1 || code === 2) return "partlyCloudy";
+        if (code === 3) return "cloudy";
+        if (code === 45 || code === 48) return "fog";
+        if (code >= 51 && code <= 57) return "drizzle";
+        if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return "rain";
+        if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) return "snow";
+        if (code >= 95) return "storm";
+        return "unknown";
+      },
+      qweatherCodeForCode: function (value, isDay) {
+        var code = Number(value);
+        var day = isDay !== false;
+        if (!Number.isFinite(code)) {
+          return day ? 100 : 150;
+        }
+        if (code === 0) return day ? 100 : 150;
+        if (code === 1) return day ? 101 : 151;
+        if (code === 2) return day ? 102 : 152;
+        if (code === 3) return day ? 103 : 153;
+        if (code === 45 || code === 48) return day ? 501 : 501;
+        if (code === 51 || code === 53) return 300;
+        if (code === 55) return 301;
+        if (code === 56 || code === 57) return 306;
+        if (code === 61) return 305;
+        if (code === 63) return 306;
+        if (code === 65) return 308;
+        if (code === 66 || code === 67) return 312;
+        if (code === 71) return 400;
+        if (code === 73) return 401;
+        if (code === 75) return 402;
+        if (code === 77) return 407;
+        if (code === 80) return 305;
+        if (code === 81) return 306;
+        if (code === 82) return 308;
+        if (code === 85) return 400;
+        if (code === 86) return 401;
+        if (code === 95) return 302;
+        if (code === 96 || code === 99) return 302;
+        return day ? 103 : 153;
+      },
+      formatTemperature: function (value) {
+        return Number.isFinite(Number(value)) ? Math.round(Number(value)) + "°" : "--";
+      },
+      formatWeatherTime: function (value) {
+        return value ? String(value).slice(-5) : "--:--";
       },
       fetchJson: async function (url, options) {
         var controller = new AbortController();

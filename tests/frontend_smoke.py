@@ -115,6 +115,12 @@ assert "sessionStorage.setItem" in script, "session-only token storage is requir
 assert "REQUEST_TIMEOUT_MS" in script and "AbortController" in script
 assert "handleAuthError" in script and "error.status !== 401" in script
 assert "refreshRequested" in script, "range changes during refresh must be replayed"
+assert "searchWeather" in script, "weather must support place search"
+assert "WEATHER_PLACE_KEY" in script and "sessionStorage" in script
+assert 'class="weather-emblem"' in index
+assert 'aria-label="每日天气"' in index
+assert "/vendor/qweather/" in index, "QWeather icons must be referenced from /vendor/qweather/"
+assert "/api/weather" in script
 assert 'role="progressbar"' in index
 assert 'aria-live="polite"' in index
 assert 'id="trend-description"' in index

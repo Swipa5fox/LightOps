@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Annotated, Optional
 
 import psutil
+from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import (
     Depends,
@@ -25,7 +26,7 @@ from fastapi import (
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import __version__, collector, db
+from . import __version__, collector, db, weather
 from .settings import settings
 
 
@@ -35,7 +36,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger("lightops")
 STARTED_AT = time.time()
-scheduler = BackgroundScheduler(timezone="UTC")
+# LightOps only schedules 2 jobs (collect + maintenance). The default
+# ThreadPoolExecutor spins up 10 workers; 3 is more than enough and trims
+# idle thread stacks on small-memory hosts.
+scheduler = BackgroundScheduler(
+    timezone="UTC",
+    executors={"default": ThreadPoolExecutor(max_workers=3)},
+)
 
 
 def operating_system_name() -> str:
@@ -190,6 +197,31 @@ def summary() -> dict:
         },
         "version": __version__,
     }
+
+
+@app.get("/api/weather")
+def local_weather(
+    place: Annotated[Optional[str], Query()] = None,
+    latitude: Annotated[Optional[float], Query(ge=-90, le=90)] = None,
+    longitude: Annotated[Optional[float], Query(ge=-180, le=180)] = None,
+) -> dict:
+    try:
+        if place:
+            return weather.current_weather_by_name(place)
+        if latitude is not None and longitude is not None:
+            return weather.current_weather(latitude, longitude)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="请提供 place（城市名）或经纬度",
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning("weather lookup failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="天气服务暂时不可用",
+        ) from exc
 
 
 @app.get("/api/metrics")

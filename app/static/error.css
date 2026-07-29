@@ -1,0 +1,99 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+
+body.error-page {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: #e7eef7;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "Microsoft YaHei", sans-serif;
+  background:
+    radial-gradient(circle at 15% -10%, rgba(30, 184, 166, 0.16), transparent 31rem),
+    radial-gradient(circle at 95% 5%, rgba(91, 54, 183, 0.13), transparent 26rem),
+    linear-gradient(180deg, #08121d 0%, #060c13 100%);
+}
+
+.error-card {
+  width: 100%;
+  max-width: 440px;
+  text-align: center;
+  padding: 40px 36px;
+  border-radius: 20px;
+  background: rgba(15, 27, 41, 0.82);
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px);
+}
+
+.error-code {
+  font-size: 72px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: #5eead4;
+  text-shadow: 0 0 24px rgba(94, 234, 212, 0.35);
+  margin: 0 0 12px;
+}
+
+.error-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  color: rgba(231, 238, 247, 0.95);
+}
+
+.error-desc {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0 0 26px;
+  color: rgba(165, 190, 210, 0.78);
+}
+
+.error-btn {
+  display: inline-block;
+  padding: 11px 26px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #06222a;
+  background: #5eead4;
+  border: none;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.error-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(94, 234, 212, 0.28);
+}
+
+.error-brand {
+  margin-top: 22px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(165, 190, 210, 0.45);
+}
+
+/* 500 变体：珊瑚红强调色 */
+.error-page.is-500 .error-card {
+  border-color: rgba(251, 113, 133, 0.18);
+}
+
+.error-page.is-500 .error-code {
+  color: #fb7185;
+  text-shadow: 0 0 24px rgba(251, 113, 133, 0.32);
+}
+
+.error-page.is-500 .error-btn {
+  color: #2a0610;
+  background: #fb7185;
+}
+
+.error-page.is-500 .error-btn:hover {
+  box-shadow: 0 10px 24px rgba(251, 113, 133, 0.28);
+}

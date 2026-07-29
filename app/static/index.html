@@ -49,6 +49,47 @@
               <span>{{ host.os_name || "Linux" }}</span>
             </p>
           </div>
+          <div class="hero-weather" aria-label="每日天气">
+            <div class="weather-emblem" :class="'weather-' + (weatherKind || 'idle')">
+              <div class="weather-emblem-icon" :style="{ '--qi-url': 'url(/vendor/qweather/' + (qweatherCode || 150) + '.svg)' }" :title="weather ? (weather.location_label || weatherLabel) : '每日天气'" aria-hidden="true"></div>
+              <div v-if="weather" class="weather-emblem-readout">
+                <strong>{{ formatTemperature(weather.current.temperature) }}</strong>
+                <span>{{ weatherLabel }}</span>
+                <span v-if="weatherTip" class="weather-emblem-tip">{{ weatherTip }}</span>
+              </div>
+              <div v-else class="weather-emblem-readout">
+                <strong>--°</strong>
+                <span>{{ weatherLoading ? "查询中" : (weatherError || "选择城市查看天气") }}</span>
+              </div>
+              <div v-if="weather && weatherCandidates.length > 1" class="weather-district-list" role="listbox" aria-label="细化到区">
+                <button
+                  v-for="candidate in weatherCandidates"
+                  :key="candidate.label"
+                  type="button"
+                  class="weather-district-tag"
+                  :class="{ active: candidate.label === activeCandidateLabel }"
+                  :disabled="weatherLoading"
+                  @click="pickDistrict(candidate)"
+                >{{ candidate.label.split("-").slice(-1)[0] }}</button>
+              </div>
+            </div>
+            <div class="weather-picker">
+              <div class="weather-picker-place">{{ weather ? weather.location_label : "选择城市查看天气" }}</div>
+              <div class="weather-picker-row">
+                <input
+                  class="weather-picker-input"
+                  type="text"
+                  v-model="weatherPlace"
+                  @keyup.enter="searchWeather"
+                  :disabled="weatherLoading"
+                  placeholder="输入城市名，如 北京"
+                  aria-label="城市名称"
+                />
+                <button type="button" class="weather-picker-btn" :disabled="weatherLoading" @click="searchWeather">查询</button>
+              </div>
+            </div>
+          </div>
+
           <div class="hero-status">
             <span
               class="status-badge"
@@ -165,7 +206,11 @@
           <div class="trend-summary">
             <span><strong>{{ history.length }}</strong> 个采样点</span>
             <span>每 60 秒采集一次</span>
-            <span>CPU / 内存 / 磁盘</span>
+            <span class="trend-legend">
+              <i class="cpu"></i>CPU
+              <i class="memory"></i>内存
+              <i class="disk"></i>磁盘
+            </span>
           </div>
           <div v-if="history.length" class="trend-stats">
             <div v-for="card in trendCards" :key="card.key" class="trend-stat-card">

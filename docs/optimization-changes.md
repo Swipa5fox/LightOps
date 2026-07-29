@@ -85,7 +85,7 @@ def init_db() -> None:
 
 - **读接口鉴权**：`/api/summary`、`/api/metrics`、`/api/services`、`/api/alerts` 经 nginx 无 `auth_basic`，主机信息对能连上服务的人可见。若服务器仅在 VPN/防火墙内则风险可接受；若端口对公网开放，建议在 `deploy/lightops.nginx.conf` 的 `location /api/` 增加 `auth_basic`。本次未自动改，需你确认部署拓扑后再决定。
 - **`metric_history` 降采样**：当前 7 天 ×60s ≈ 1 万行规模下完全够用，未来 retention 调大再考虑 SQL 层时间分桶。
-- **CI / 依赖 hash 锁定**：建议在仓库接入 GitHub Actions（pytest + shellcheck + pip-audit），属工程化增强，非本次范围。
+- **CI / 依赖 hash 锁定**：已在仓库接入 GitHub Actions（`.github/workflows/ci.yml`）：push 时自动跑 pytest（smoke / api_smoke / frontend_smoke）+ shellcheck + 前端静态检查（禁止 eval/new Function、校验 CSP 与令牌处理）+ 发布包 SHA-256 校验。依赖 hash 锁定（pip-audit / 锁文件）仍可作为后续增强。
 
 ---
 
