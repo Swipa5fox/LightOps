@@ -98,14 +98,36 @@ jobs:
             tests/platform_detection.sh \
             tests/nginx_template.sh
 
-      - name: 部署脚本夹具测试
-        run: |
-          bash tests/install_helpers.sh
-          bash tests/platform_detection.sh
-          bash tests/nginx_template.sh
-
       - name: 构建发布包并输出 SHA-256
         run: |
           python tools/build-release.py
           echo "--- 发布包 SHA-256 ---"
           sha256sum releases/LightOps-*.tar.gz
+
+  fixture:
+    name: 夹具测试 / ${{ matrix.fixture }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        fixture:
+          - install_helpers
+          - platform_detection
+          - nginx_template
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v7
+
+      - name: 安装夹具依赖
+        run: |
+          if [ "${{ matrix.fixture }}" = "nginx_template" ]; then
+            sudo apt-get update
+            sudo apt-get install -y nginx
+          elif [ "${{ matrix.fixture }}" = "install_helpers" ]; then
+            sudo apt-get update
+            sudo apt-get install -y sudo
+          fi
+
+      - name: 运行 ${{ matrix.fixture }}
+        run: bash "tests/${{ matrix.fixture }}.sh"
