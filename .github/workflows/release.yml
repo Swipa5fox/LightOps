@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: 创建 GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v7
+
+      - name: 确定发布版本与文件
+        id: release
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          archive="releases/LightOps-${version}-integrated.tar.gz"
+          test -f "$archive"
+          test -f releases/SHA256SUMS
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+
+      - name: 校验发布包 SHA-256
+        working-directory: releases
+        run: sha256sum -c SHA256SUMS
+
+      - name: 提取当前版本说明
+        shell: bash
+        run: |
+          awk '/^## 历史版本/{exit} {print}' CHANGELOG.md > release-notes.md
+          test -s release-notes.md
+
+      - name: 创建正式 Release 并上传文件
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "${{ steps.release.outputs.tag }}" \
+            "${{ steps.release.outputs.archive }}" \
+            releases/SHA256SUMS \
+            --verify-tag \
+            --title "LightOps ${{ steps.release.outputs.version }}" \
+            --notes-file release-notes.md \
+            --latest
