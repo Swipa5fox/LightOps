@@ -33,7 +33,9 @@ if command -v visudo >/dev/null 2>&1; then
     visudo -cf "$sudoers_file"
 fi
 
+# shellcheck disable=SC2016
 grep -Fq '"$LIGHTOPS_SYSTEMCTL_PATH" enable lightops' "$PROJECT_ROOT/deploy/install.sh"
+# shellcheck disable=SC2016
 grep -Fq '"$LIGHTOPS_SYSTEMCTL_PATH" restart lightops' "$PROJECT_ROOT/deploy/install.sh"
 if grep -Fq 'enable --now lightops' "$PROJECT_ROOT/deploy/install.sh"; then
     echo "install.sh must restart an already active LightOps service during upgrades" >&2
@@ -42,8 +44,10 @@ fi
 
 for service_script in deploy/lightopsctl deploy/verify-server.sh; do
     grep -Fq 'read -r -a service_names' "$PROJECT_ROOT/$service_script"
+    # shellcheck disable=SC2016
     grep -Fq '"${service_names[@]}"' "$PROJECT_ROOT/$service_script"
 done
+# shellcheck disable=SC2016
 if grep -Fq 'for monitored_service in lightops,$MONITORED_SERVICES' "$PROJECT_ROOT/deploy/lightopsctl"; then
     echo "lightopsctl must split the complete service CSV instead of a literal prefix" >&2
     exit 1

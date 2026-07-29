@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 DEPLOYMENT_FILE=/etc/lightops/deployment.env
 ENV_FILE=/etc/lightops/lightops.env
-# shellcheck disable=SC1091
+# shellcheck disable=SC1090,SC1091
 . "$DEPLOYMENT_FILE"
 
 PUBLIC_PORT=${LIGHTOPS_PUBLIC_PORT:-8080}
@@ -41,7 +41,7 @@ echo
 
 echo "AUTH_GUARD"
 set -a
-# shellcheck disable=SC1091
+# shellcheck disable=SC1090,SC1091
 . "$ENV_FILE"
 set +a
 unauthorized_status=$(curl --silent --output /dev/null --write-out "%{http_code}" "http://127.0.0.1:$PUBLIC_PORT/api/audit")

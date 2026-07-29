@@ -4,7 +4,7 @@ set -Eeuo pipefail
 DEPLOYMENT_FILE=/etc/lightops/deployment.env
 ENV_FILE=/etc/lightops/lightops.env
 if [ -r "$DEPLOYMENT_FILE" ]; then
-    # shellcheck disable=SC1091
+    # shellcheck disable=SC1090,SC1091
     . "$DEPLOYMENT_FILE"
 fi
 
@@ -52,6 +52,7 @@ as_root() {
 }
 
 wait_for_health() {
+    # shellcheck disable=SC2034
     for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
         if curl --fail --silent --show-error "$HEALTH_URL" >/dev/null 2>&1; then
             echo "LightOps 健康检查通过。"
@@ -81,7 +82,7 @@ run_backup() {
     fi
 
     set -a
-    # shellcheck disable=SC1091
+    # shellcheck disable=SC1090,SC1091
     . "$ENV_FILE"
     set +a
     token=${LIGHTOPS_API_TOKEN:-}
