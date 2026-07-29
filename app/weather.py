@@ -8,7 +8,6 @@ from typing import Any
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from . import __version__
 from .settings import settings
 
 
@@ -196,7 +195,7 @@ def _fetch_remote(latitude: float, longitude: float) -> dict[str, Any]:
     )
     request = Request(
         f"{_FORECAST_URL}?{query}",
-        headers={"User-Agent": f"LightOps/{__version__} weather-widget"},
+        headers={"User-Agent": "LightOps/0.1.1 weather-widget"},
     )
     with urlopen(request, timeout=settings.weather_request_timeout_seconds) as response:
         if response.status != 200:
@@ -376,7 +375,7 @@ def _open_meteo_geocode(name: str, count: int) -> list[dict[str, Any]]:
     )
     request = Request(
         f"{_GEOCODING_URL}?{query}",
-        headers={"User-Agent": f"LightOps/{__version__} weather-widget"},
+        headers={"User-Agent": "LightOps/0.1.1 weather-widget"},
     )
     with urlopen(request, timeout=settings.weather_request_timeout_seconds) as response:
         if response.status != 200:
