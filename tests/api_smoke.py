@@ -21,7 +21,7 @@ if os.name == "nt":
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from app import db, weather  # noqa: E402
+from app import db, weather, __version__  # noqa: E402
 from app.main import app  # noqa: E402
 
 
@@ -29,7 +29,7 @@ with TestClient(app) as client:
     health = client.get("/api/health")
     assert health.status_code == 200, health.text
     assert health.json()["status"] == "ok"
-    assert health.json()["version"] == "0.1.1"
+    assert health.json()["version"] == __version__
     assert health.json()["collector"] == "ok"
     assert health.json()["scheduler"] == "running"
 
