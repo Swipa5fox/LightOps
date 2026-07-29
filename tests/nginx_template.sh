@@ -17,6 +17,8 @@ render_http() {
         -e 's|__LIGHTOPS_PUBLIC_PORT__|18080|g' \
         -e 's|__LIGHTOPS_SERVER_NAME__|_|g' \
         -e '/^__LIGHTOPS_HTTPS_BLOCK__$/d' \
+        -e "s|/var/log/nginx/lightops_access.log|$fixture_root/lightops_access.log|g" \
+        -e "s|/var/log/nginx/lightops_error.log|$fixture_root/lightops_error.log|g" \
         "$PROJECT_ROOT/deploy/lightops.nginx.conf" > "$rendered"
     if grep -q '__LIGHTOPS_' "$rendered"; then
         echo "unresolved Nginx template placeholder" >&2
