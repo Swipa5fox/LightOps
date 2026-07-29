@@ -1,13 +1,10 @@
 # LightOps
 
-LightOps 是面向小型 Linux 云服务器的轻量监控与受限运维面板。后端使用 FastAPI、psutil、APScheduler 和 SQLite，前端使用 Vue 3 与原生 SVG，部署后由 systemd 管理应用、由 Nginx 提供网页入口。当前开发版本为 **0.1.2**。
+LightOps 是面向小型 Linux 云服务器的轻量监控与受限运维面板。后端使用 FastAPI、psutil、APScheduler 和 SQLite，前端使用 Vue 3 与原生 SVG，部署后由 systemd 管理应用、由 Nginx 提供网页入口。当前开发版本为 **0.1.1**。
 
-## 0.1.2 重点
+## 0.1.1 重点
 
-- 新增城市天气查询、区级候选、QWeather Icons 天气图标与暖心提示语；
-- 增加自定义 404/500 错误页、Nginx gzip 压缩与版本信息隐藏；
-- 补齐 GitHub Actions CI、内存诊断/优化脚本及发布包校验流程；
-- 保留 0.1.0/0.1.1 已验证的跨发行版预检、动态服务白名单、运维 CLI、10 分钟趋势和曲线悬停；
+- 保留 0.1.0 已验证的跨发行版预检、动态服务白名单、运维 CLI、10 分钟趋势和曲线悬停；
 - 管理令牌从永久 localStorage 自动迁移到当前标签页的 sessionStorage，401 后立即清除；
 - 所有前端 API 请求增加 10 秒超时，并修复切换趋势范围时旧请求覆盖新范围的竞态；
 - 增加进度条语义、状态播报、键盘焦点和减少动画偏好支持；

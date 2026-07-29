@@ -262,7 +262,7 @@ return function render(_ctx, _cache) {
             role: "status",
             "aria-live": "polite"
           }, _toDisplayString(_ctx.error ? "数据异常" : (_ctx.updatedAt ? "系统运行中" : "正在连接")), 3 /* TEXT, CLASS */),
-          _createElementVNode("span", _hoisted_21, "v" + _toDisplayString(_ctx.summary.version || "0.1.2"), 1 /* TEXT */)
+          _createElementVNode("span", _hoisted_21, "v" + _toDisplayString(_ctx.summary.version || "0.1.1"), 1 /* TEXT */)
         ])
       ]),
       (_ctx.error)

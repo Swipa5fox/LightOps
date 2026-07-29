@@ -1,36 +1,42 @@
-# 🎉 版本 0.1.2 更新日志
+# 更新日志
 
-## LightOps 轻量服务器监控系统版本更新
+本项目所有重要变更均记录于此文件。
 
-发布日期：2026-07-30
+格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+
+## [0.2.0] - 2026-07-30
+
+本次发布聚焦「首页天气体验」「生产安全与性能」「部署可观测性」三条主线，并补齐 CI 与运维脚本。
 
 ### 新增
 
-- **首页天气模块**：在首页中部新增天气卡片，支持直接输入城市名查询天气，无需配置 API Key。
-- **天气图标与提示语**：新增 QWeather Icons 天气图标、白天/夜间样式切换，以及晴、雨、雪、雷暴、雾等天气对应的暖心提示语。
-- **区级天气选择**：支持北京、上海、广州、深圳、成都、杭州、武汉、西安、南京、重庆等城市的区级候选切换。
-- **自定义错误页面**：新增统一风格的 404 和 500 错误页，未知地址会返回明确的错误提示。
-- **自动化测试流程**：新增 GitHub Actions CI，在提交代码时自动执行 Python、API、前端安全、Shell 脚本和发布包检查。
-- **内存运维工具**：新增内存诊断与优化脚本，可检查进程占用、MySQL、Redis、Swap 和系统日志，并支持回滚优化配置。
+- **首页天气模块**：在 hero 区中部新增天气卡片，支持城市名查询（Open-Meteo 免密钥代理，无需 API Key）。
+  - QWeather Icons 图标（48px）按天气种类染色，白天/夜间自动切换变体。
+  - 暖心天气提示语（晴/多云/阴/雨/雪/雷暴/雾等 27 种 WMO 码）。
+  - 区级细化：内置北/沪/穗/深/蓉/杭/汉/西安/南京/渝 10 城主城区，候选 >1 时展示区级标签一键切换。
+  - 新增后端 `app/weather.py`（`/api/weather?place=城市`，30 分钟内存缓存、8 秒超时）。
+  - 新增配置项 `LIGHTOPS_WEATHER_CACHE_SECONDS`、`LIGHTOPS_WEATHER_REQUEST_TIMEOUT_SECONDS`（含取值校验）。
+- **自定义 404/500 错误页**：`app/static/404.html`、`500.html`、`error.css`，深色玻璃卡片风格，复用仪表盘主题色；Nginx `error_page` + `internal` 保护，直接访问错误页本身返回 404，防滥用与被索引。
+- **GitHub Actions CI**：`.github/workflows/ci.yml`，push / PR 自动执行 Python 编译 + 冒烟/API/前端安全测试、前端渲染构建 + CSP 底线（禁止 `eval`/`new Function`）、shellcheck 全量部署脚本、夹具测试、发布包构建 + SHA-256 输出。
+- **内存优化脚本**：`deploy/mem-diag.sh`（只读诊断各进程 RSS / MySQL·Redis 配置 / Swap / 内核缓存）、`deploy/optimize-mem.sh`（journal 限容 + 停 Docker + MySQL drop-in 调优，可回滚）。
+
+### 变更
+
+- **Nginx 性能**：开启 gzip 静态压缩，`app.js` / `style.css` 传输体积下降约 75%。
+- **Nginx 安全**：`server_tokens off` 隐藏 Nginx 版本号，减少信息泄露面。
+- **Nginx 路由**：`try_files $uri $uri/ =404` 取代 SPA fallback，未知路径返回真实 404 以触发自定义错误页（此前未知路径被吞成 200 空体）。
+- **趋势图图例**：汇总栏「CPU / 内存 / 磁盘」由纯文字改为带颜色小圆点的图例（CPU 青、内存 紫、磁盘 琥珀），与图表线色、悬停 tooltip 配色一致。
+- **HTTPS 回退**：移除自签证书相关代码（`install.sh` 的 `ensure_self_signed_certificate`/`build_https_block`、`lightops.nginx.conf` 的 HTTPS 块占位、`build-release.py` 的 `.nginx.https.conf` 归一化），仅保留 HTTP 8080。
+- **collector 子进程编码**：`_systemctl` / `restart_service` 显式 `encoding="utf-8", errors="replace"`，兼容 Windows 测试环境下中文输出的解码。
+- **build-release.py**：CRLF→LF 归一化扩展到 `deploy/*.conf`、`*.service`、`*.sudoers`、`*.nginx.conf`，防 Windows 编辑导致远端 `sed` 替换失败。
+- **generate-render.mjs**：修正 CRLF 模板边界兼容，`index.html` 改动后能稳定重生成 `render.js`。
+
+### 文档
+
+- 新增本 `CHANGELOG.md`。
+- `README.md` 同步天气模块与采集说明。
 
 ---
-
-### 修改与优化
-
-- **Nginx 访问性能**：开启 gzip 静态压缩，`app.js` 和 `style.css` 的网络传输体积下降约 75%。
-- **Nginx 安全设置**：隐藏 Nginx 版本号，减少服务信息泄露。
-- **错误路由处理**：未知路径不再返回 200 空页面，改为返回真实 404 并展示自定义错误页。
-- **趋势图图例**：CPU、内存、磁盘增加对应颜色标识，与曲线及悬停提示保持一致。
-- **HTTPS 配置**：暂时移除自签名证书方案，当前统一使用 HTTP 8080；配置真实域名证书后可恢复 HTTPS。
-- **服务器内存占用**：限制系统日志空间、停止无用 Docker 服务并优化 MySQL 配置，降低生产服务器内存占用。
-- **部署脚本兼容性**：优化 Windows 与 Linux 间的 UTF-8、换行符和中文日志处理，降低脚本上传后执行失败的概率。
-- **前端模板构建**：修复 CRLF 模板边界问题，修改 `index.html` 后可以稳定重新生成 `render.js`。
-- **版本信息一致性**：项目说明文档、应用接口、前端展示、测试与打包配置统一更新为 `0.1.2`。
-- **项目文档**：更新 README、开发交接总览、生产部署报告和开发入口，明确当前版本与历史部署记录的区别。
-
----
-
-## 历史版本
 
 ## [0.1.1] - 2026-07
 
