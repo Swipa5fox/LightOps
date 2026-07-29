@@ -8,7 +8,7 @@ fi
 
 deployment_file=/etc/lightops/deployment.env
 env_file=/etc/lightops/lightops.env
-# shellcheck disable=SC1091
+# shellcheck disable=SC1090,SC1091
 . "$deployment_file"
 public_port=${LIGHTOPS_PUBLIC_PORT:-8080}
 systemctl_path=${LIGHTOPS_SYSTEMCTL_PATH:-$(command -v systemctl)}
@@ -36,6 +36,7 @@ mv -f "$temporary" "$env_file"
 "$systemctl_path" restart lightops
 
 healthy=0
+# shellcheck disable=SC2034
 for attempt in 1 2 3 4 5 6 7 8 9 10; do
     if curl --fail --silent http://127.0.0.1:8000/api/health >/dev/null; then
         healthy=1

@@ -364,6 +364,7 @@ configure_swap
 "$LIGHTOPS_SYSTEMCTL_PATH" reload "$nginx_service"
 
 health_ok=0
+# shellcheck disable=SC2034
 for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
     if curl --fail --silent --show-error http://127.0.0.1:8000/api/health >/dev/null; then
         health_ok=1
