@@ -61,6 +61,10 @@ class Settings:
     cpu_threshold: float = _env_float("LIGHTOPS_CPU_THRESHOLD", 85.0)
     memory_threshold: float = _env_float("LIGHTOPS_MEMORY_THRESHOLD", 85.0)
     disk_threshold: float = _env_float("LIGHTOPS_DISK_THRESHOLD", 80.0)
+    weather_cache_seconds: int = _env_int("LIGHTOPS_WEATHER_CACHE_SECONDS", 1800)
+    weather_request_timeout_seconds: int = _env_int(
+        "LIGHTOPS_WEATHER_REQUEST_TIMEOUT_SECONDS", 8
+    )
 
     def validate(self) -> None:
         if not self.api_token or len(self.api_token) < 32:
@@ -71,6 +75,12 @@ class Settings:
             raise RuntimeError("LIGHTOPS_COLLECT_INTERVAL must be at least 15 seconds")
         if self.retention_days < 1:
             raise RuntimeError("LIGHTOPS_RETENTION_DAYS must be positive")
+        if self.weather_cache_seconds < 300:
+            raise RuntimeError("LIGHTOPS_WEATHER_CACHE_SECONDS must be at least 300")
+        if not 2 <= self.weather_request_timeout_seconds <= 30:
+            raise RuntimeError(
+                "LIGHTOPS_WEATHER_REQUEST_TIMEOUT_SECONDS must be between 2 and 30"
+            )
         for name, value in (
             ("LIGHTOPS_SYSTEMCTL_PATH", self.systemctl_path),
             ("LIGHTOPS_SUDO_PATH", self.sudo_path),

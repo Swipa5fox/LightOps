@@ -146,7 +146,7 @@ ensure_env_setting() {
 }
 
 port_is_in_use() {
-    "$ss_path" -H -ltn | awk -v suffix=":$LIGHTOPS_PUBLIC_PORT" '
+    "$ss_path" -H -ltn | awk -v suffix=":$1" '
         $4 ~ (suffix "$") { found = 1 }
         END { exit(found ? 0 : 1) }
     '
@@ -186,6 +186,8 @@ configure_swap() {
         printf '%s\n' '/swapfile none swap sw 0 0' >> /etc/fstab
     fi
 }
+
+
 
 if [ "$(id -u)" -ne 0 ]; then
     fail "install.sh must run as root"
@@ -229,7 +231,7 @@ if [ -n "$redis_service" ]; then
     monitored_services="$monitored_services,$redis_service"
 fi
 
-if port_is_in_use && [ ! -f "$NGINX_DEST" ]; then
+if port_is_in_use "$LIGHTOPS_PUBLIC_PORT" && [ ! -f "$NGINX_DEST" ]; then
     fail "TCP $LIGHTOPS_PUBLIC_PORT is already in use and is not managed by an existing LightOps config"
 fi
 
@@ -317,7 +319,11 @@ install -m 0755 "$PACKAGE_ROOT/deploy/verify-server.sh" /usr/local/bin/lightops-
 install -m 0755 "$PACKAGE_ROOT/deploy/rotate-token.sh" /usr/local/sbin/lightops-rotate-token
 
 nginx_candidate=$(mktemp)
-sed -e "s/__LIGHTOPS_PUBLIC_PORT__/$LIGHTOPS_PUBLIC_PORT/g" -e "s/__LIGHTOPS_SERVER_NAME__/$LIGHTOPS_SERVER_NAME/g" "$PACKAGE_ROOT/deploy/lightops.nginx.conf" > "$nginx_candidate"
+sed \
+    -e "s|__LIGHTOPS_PUBLIC_PORT__|$LIGHTOPS_PUBLIC_PORT|g" \
+    -e "s|__LIGHTOPS_SERVER_NAME__|$LIGHTOPS_SERVER_NAME|g" \
+    -e "/^__LIGHTOPS_HTTPS_BLOCK__$/d" \
+    "$PACKAGE_ROOT/deploy/lightops.nginx.conf" > "$nginx_candidate"
 if grep -q '__LIGHTOPS_' "$nginx_candidate"; then
     rm -f "$nginx_candidate"
     fail "Nginx template still contains unresolved placeholders"

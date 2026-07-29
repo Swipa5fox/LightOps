@@ -11,9 +11,9 @@ const htmlPath = resolve(projectRoot, "app/static/index.html");
 const outputPath = resolve(projectRoot, "app/static/render.js");
 const html = await readFile(htmlPath, "utf8");
 const opening = '<div id="app" v-cloak>';
-const closing = "\n    </div>\n\n    <script";
 const start = html.indexOf(opening);
-const end = html.lastIndexOf(closing);
+const firstScript = html.search(/\r?\n    <script/);
+const end = firstScript >= 0 ? html.lastIndexOf("</div>", firstScript) : -1;
 
 if (start < 0 || end < 0 || end <= start) {
   throw new Error("Unable to locate the LightOps Vue template in index.html");

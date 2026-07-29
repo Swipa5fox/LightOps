@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import io
 import re
 import tarfile
 from pathlib import Path
@@ -73,6 +74,19 @@ def normalized_info(path: Path, arcname: str) -> tarfile.TarInfo:
     return info
 
 
+def normalized_file_content(path: Path) -> bytes:
+    data = path.read_bytes()
+    relative = path.relative_to(ROOT).as_posix()
+    if path.suffix == ".sh" or relative == "deploy/lightopsctl":
+        return data.replace(b"\r\n", b"\n")
+    if relative.startswith("deploy/") and (
+        path.suffix in {".conf", ".service", ".sudoers"}
+        or relative.endswith(".nginx.conf")
+    ):
+        return data.replace(b"\r\n", b"\n")
+    return data
+
+
 def build(output: Path) -> str:
     missing = [name for name in REQUIRED_FILES if not (ROOT / name).is_file()]
     if missing:
@@ -90,8 +104,9 @@ def build(output: Path) -> str:
                     arcname = "lightops" if not relative.parts else f"lightops/{relative.as_posix()}"
                     info = normalized_info(path, arcname)
                     if path.is_file():
-                        with path.open("rb") as source:
-                            archive.addfile(info, source)
+                        content = normalized_file_content(path)
+                        info.size = len(content)
+                        archive.addfile(info, io.BytesIO(content))
                     else:
                         archive.addfile(info)
 

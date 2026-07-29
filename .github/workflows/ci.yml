@@ -1,0 +1,111 @@
+# LightOps 最小 CI
+#
+# 目的：把"靠人记得跑测试"变成"机器强制跑"。每次 push / PR 自动执行：
+#   1. Python 编译 + 冒烟/API/前端安全测试
+#   2. 前端渲染构建 + 语法检查 + CSP 底线（禁止 eval / new Function）
+#   3. shellcheck 全量部署脚本
+#   4. 部署脚本夹具测试（平台识别 / 安装辅助函数 / Nginx 模板）
+#   5. 发布包构建 + SHA-256 输出
+#
+# 拦截目标：类似 load_15 取错数组索引、clampPercent 缺参导致白屏这类回归，
+# 在合并前就被拦下，而不是等上线后才发现。
+#
+# 扩展建议（当前不做，保持最小）：
+#   - 多版本 Python 矩阵（3.9 / 3.11 / 3.13）
+#   - 覆盖率门禁、pip-audit 依赖审计
+#   - 自动发布到 GitHub Releases
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 同分支新提交取消旧运行，节省额度
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: 测试与检查
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装系统依赖（shellcheck + nginx）
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck nginx
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tools/package-lock.json
+
+      - name: 安装 Python 依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: 安装前端构建依赖
+        run: npm ci --prefix tools
+
+      - name: Python 编译检查
+        run: python -m compileall -q app tests
+
+      - name: Python 冒烟测试（smoke / API / 前端安全）
+        run: |
+          python tests/smoke.py
+          python tests/api_smoke.py
+          python tests/frontend_smoke.py
+
+      - name: 前端渲染构建与语法检查
+        run: |
+          node tools/generate-render.mjs
+          node --check app/static/render.js
+          node --check app/static/app.js
+          # CSP 底线：render.js 不得出现 eval / new Function
+          ! grep -qE "new Function|eval\(" app/static/render.js
+
+      - name: shellcheck 部署与测试脚本
+        run: |
+          shellcheck \
+            deploy/preflight.sh \
+            deploy/install.sh \
+            deploy/rotate-token.sh \
+            deploy/verify-server.sh \
+            deploy/lightopsctl \
+            deploy/lib/config.sh \
+            deploy/lib/platform.sh \
+            tests/install_helpers.sh \
+            tests/platform_detection.sh \
+            tests/nginx_template.sh
+
+      - name: 部署脚本夹具测试
+        run: |
+          bash tests/install_helpers.sh
+          bash tests/platform_detection.sh
+          bash tests/nginx_template.sh
+
+      - name: 构建发布包并输出 SHA-256
+        run: |
+          python tools/build-release.py
+          echo "--- 发布包 SHA-256 ---"
+          sha256sum releases/LightOps-*.tar.gz

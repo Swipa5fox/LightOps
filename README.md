@@ -1,6 +1,6 @@
 # LightOps
 
-LightOps 是面向小型 Linux 云服务器的轻量监控与受限运维面板。后端使用 FastAPI、psutil、APScheduler 和 SQLite，前端使用 Vue 3 与原生 SVG，部署后由 systemd 管理应用、由 Nginx 提供网页入口。当前开发版本为 **0.1.1a**。
+LightOps 是面向小型 Linux 云服务器的轻量监控与受限运维面板。后端使用 FastAPI、psutil、APScheduler 和 SQLite，前端使用 Vue 3 与原生 SVG，部署后由 systemd 管理应用、由 Nginx 提供网页入口。当前开发版本为 **0.1.1**。
 
 ## 0.1.1 重点
 
