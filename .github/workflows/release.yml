@@ -2,8 +2,13 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+    paths:
+      - '.github/workflows/release.yml'
+      - 'app/__init__.py'
+      - 'CHANGELOG.md'
+      - 'releases/**'
   workflow_dispatch:
 
 permissions:
@@ -23,8 +28,9 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          tag="${GITHUB_REF_NAME}"
-          version="${tag#v}"
+          version=$(sed -n 's/^__version__ = "\([^"]*\)"/\1/p' app/__init__.py)
+          test -n "$version"
+          tag="v${version}"
           archive="releases/LightOps-${version}-integrated.tar.gz"
           test -f "$archive"
           test -f releases/SHA256SUMS
@@ -42,15 +48,35 @@ jobs:
           awk '/^## 历史版本/{exit} {print}' CHANGELOG.md > release-notes.md
           test -s release-notes.md
 
-      - name: 创建正式 Release 并上传文件
+      - name: 创建或更新正式 Release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          gh release create "${{ steps.release.outputs.tag }}" \
-            "${{ steps.release.outputs.archive }}" \
-            releases/SHA256SUMS \
-            --verify-tag \
-            --title "LightOps ${{ steps.release.outputs.version }}" \
-            --notes-file release-notes.md \
-            --latest
+          tag="${{ steps.release.outputs.tag }}"
+          version="${{ steps.release.outputs.version }}"
+          archive="${{ steps.release.outputs.archive }}"
+
+          if ! git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            git tag -a "$tag" -m "LightOps ${version}"
+            git push origin "$tag"
+          fi
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" \
+              --title "LightOps ${version}" \
+              --notes-file release-notes.md \
+              --latest
+            gh release upload "$tag" \
+              "$archive" \
+              releases/SHA256SUMS \
+              --clobber
+          else
+            gh release create "$tag" \
+              "$archive" \
+              releases/SHA256SUMS \
+              --verify-tag \
+              --title "LightOps ${version}" \
+              --notes-file release-notes.md \
+              --latest
+          fi
