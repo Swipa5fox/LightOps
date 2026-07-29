@@ -30,7 +30,13 @@ grep -Fq '/usr/bin/systemctl restart nginx, /usr/bin/systemctl restart redis-ser
 grep -Fq 'lightops ALL=(root) NOPASSWD: LIGHTOPS_RESTART' "$sudoers_file"
 if command -v visudo >/dev/null 2>&1; then
     chmod 0440 "$sudoers_file"
-    visudo -cf "$sudoers_file"
+    if ! visudo -cf "$sudoers_file" 2>"$fixture_root/visudo.err"; then
+        echo "visudo -cf failed. rendered sudoers:" >&2
+        cat "$sudoers_file" >&2
+        echo "--- visudo stderr ---" >&2
+        cat "$fixture_root/visudo.err" >&2
+        exit 1
+    fi
 fi
 
 # shellcheck disable=SC2016

@@ -126,7 +126,7 @@ assert 'aria-live="polite"' in index
 assert 'id="trend-description"' in index
 assert "button:focus-visible" in style
 assert "prefers-reduced-motion" in style
-assert '"0.1.1"' in render, "render.js must be regenerated for the current release"
+assert '"0.1.2"' in render, "render.js must be regenerated for the current release"
 
 csp_match = re.search(r'Content-Security-Policy "([^"]+)"', nginx)
 assert csp_match, "Nginx CSP header is missing"
