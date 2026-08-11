@@ -15,6 +15,9 @@ from .settings import settings
 
 logger = logging.getLogger("lightops.collector")
 _consecutive: dict[str, int] = {}
+# systemctl/sudo must run against the server's own binaries, never a
+# cross-compiled venv PATH; LANG=C keeps subprocess output byte-stable.
+_RUN_ENV = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C"}
 
 _BUCKET_PATTERN = re.compile(r"(?:s3|cos|oss|gs)://[A-Za-z0-9._\-]+")
 _UNIT_FILE_CANDIDATES = (
@@ -34,7 +37,7 @@ def _systemctl(*args: str) -> subprocess.CompletedProcess[str]:
         errors="replace",
         timeout=10,
         check=False,
-        env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C"},
+        env=_RUN_ENV,
     )
 
 
@@ -188,7 +191,7 @@ def restart_service(service: str) -> tuple[bool, str]:
             errors="replace",
             timeout=30,
             check=False,
-            env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C"},
+            env=_RUN_ENV,
         )
     except (OSError, subprocess.SubprocessError) as exc:
         return False, str(exc)
