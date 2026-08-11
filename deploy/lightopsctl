@@ -29,7 +29,6 @@ LightOps 管理脚本
   lightopsctl restart           重启并检查 LightOps
   lightopsctl status            查看服务状态
   lightopsctl health            调用健康检查接口
-  lightopsctl doctor            检查服务、内存限制、端口和接口
   lightopsctl logs [行数]       查看最近日志，默认 100 行
   lightopsctl follow            持续查看日志，Ctrl+C 退出
   lightopsctl enable            设置开机自启
@@ -96,15 +95,6 @@ run_backup() {
     echo
 }
 
-show_service_states() {
-    service_list="lightops,$MONITORED_SERVICES"
-    IFS=',' read -r -a service_names <<< "$service_list"
-    for monitored_service in "${service_names[@]}"; do
-        printf '%-24s ' "$monitored_service"
-        "$SYSTEMCTL" is-active "$monitored_service" 2>/dev/null || true
-    done
-}
-
 command_name=${1:-help}
 case "$command_name" in
     start)
@@ -124,22 +114,6 @@ case "$command_name" in
         ;;
     health)
         show_health
-        ;;
-    doctor)
-        echo "== 服务状态 =="
-        show_service_states
-        echo
-        echo "== LightOps 资源限制 =="
-        "$SYSTEMCTL" show lightops -p MainPID -p MemoryCurrent -p MemoryMax -p NRestarts -p ActiveEnterTimestamp
-        echo
-        echo "== 监听端口 =="
-        ss -ltnp | grep -E "(:8000|:$PUBLIC_PORT)([[:space:]]|$)" || true
-        echo
-        echo "== 内部健康接口 =="
-        show_health
-        echo "== Nginx 健康接口 =="
-        curl --fail --silent --show-error "http://127.0.0.1:$PUBLIC_PORT/api/health"
-        echo
         ;;
     logs)
         lines=${2:-100}

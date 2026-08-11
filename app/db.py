@@ -325,6 +325,14 @@ def cleanup_old_data() -> dict[str, int]:
     }
 
 
+def run_maintenance() -> dict[str, int | str]:
+    """Delete expired rows then take a database backup; returns both results."""
+    return {
+        "deleted": cleanup_old_data(),
+        "backup": backup_database(),
+    }
+
+
 def backup_database() -> str:
     settings.backup_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
