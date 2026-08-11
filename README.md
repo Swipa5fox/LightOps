@@ -135,7 +135,6 @@ auto 服务检测候选：
 ~~~bash
 lightopsctl status
 lightopsctl health
-lightopsctl doctor
 lightopsctl logs 100
 lightopsctl restart
 lightopsctl backup
