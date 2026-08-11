@@ -75,9 +75,8 @@ def require_token(
 
 def scheduled_maintenance() -> None:
     try:
-        deleted = db.cleanup_old_data()
-        backup = db.backup_database()
-        logger.info("maintenance complete deleted=%s backup=%s", deleted, backup)
+        result = db.run_maintenance()
+        logger.info("maintenance complete deleted=%s backup=%s", result["deleted"], result["backup"])
     except Exception:
         logger.exception("scheduled maintenance failed")
 
@@ -282,8 +281,7 @@ def restart(service: str, request: Request) -> dict:
 def run_maintenance(request: Request) -> dict:
     remote_addr = request.client.host if request.client else "unknown"
     try:
-        deleted = db.cleanup_old_data()
-        backup = db.backup_database()
+        result = db.run_maintenance()
     except Exception as exc:
         db.write_audit(
             "run_maintenance", "database", False, str(exc), remote_addr
@@ -293,10 +291,10 @@ def run_maintenance(request: Request) -> dict:
         "run_maintenance",
         "database",
         True,
-        f"deleted={deleted}; backup={backup}",
+        f"deleted={result['deleted']}; backup={result['backup']}",
         remote_addr,
     )
-    return {"ok": True, "deleted": deleted, "backup": backup}
+    return {"ok": True, "deleted": result["deleted"], "backup": result["backup"]}
 
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"

@@ -113,30 +113,10 @@
         }).length;
       },
       cpuStatus: function () {
-        var value = Number(this.metric.cpu_percent);
-        if (!Number.isFinite(value)) {
-          return "等待数据";
-        }
-        if (value < 50) {
-          return "运行平稳";
-        }
-        if (value < 80) {
-          return "负载上升";
-        }
-        return "需要关注";
+        return this.statusInfo(this.metric.cpu_percent, "负载上升").label;
       },
       cpuStatusClass: function () {
-        var value = Number(this.metric.cpu_percent);
-        if (!Number.isFinite(value)) {
-          return "waiting";
-        }
-        if (value < 50) {
-          return "normal";
-        }
-        if (value < 80) {
-          return "elevated";
-        }
-        return "critical";
+        return this.statusInfo(this.metric.cpu_percent, "负载上升").cls;
       },
       trendCards: function () {
         var definitions = [
@@ -408,9 +388,6 @@
       formatTemperature: function (value) {
         return Number.isFinite(Number(value)) ? Math.round(Number(value)) + "°" : "--";
       },
-      formatWeatherTime: function (value) {
-        return value ? String(value).slice(-5) : "--:--";
-      },
       fetchJson: async function (url, options) {
         var controller = new AbortController();
         var timeout = window.setTimeout(function () {
@@ -641,31 +618,24 @@
       clampNumber: function (value) {
         return Math.max(0, Math.min(100, Number(value) || 0));
       },
-      statusLabel: function (value) {
+      statusInfo: function (value, risingLabel) {
         var safe = Number(value);
         if (!Number.isFinite(safe)) {
-          return "等待数据";
+          return { label: "等待数据", cls: "waiting" };
         }
         if (safe < 50) {
-          return "运行平稳";
+          return { label: "运行平稳", cls: "normal" };
         }
         if (safe < 80) {
-          return "使用偏高";
+          return { label: risingLabel, cls: "elevated" };
         }
-        return "需要关注";
+        return { label: "需要关注", cls: "critical" };
+      },
+      statusLabel: function (value) {
+        return this.statusInfo(value, "使用偏高").label;
       },
       statusClass: function (value) {
-        var safe = Number(value);
-        if (!Number.isFinite(safe)) {
-          return "waiting";
-        }
-        if (safe < 50) {
-          return "normal";
-        }
-        if (safe < 80) {
-          return "elevated";
-        }
-        return "critical";
+        return this.statusInfo(value, "使用偏高").cls;
       },
       formatHardwareCapacity: function (value) {
         var bytes = Number(value);
@@ -673,9 +643,6 @@
           return "--";
         }
         return Math.ceil(bytes / 1073741824) + "GB";
-      },
-      formatNumber: function (value) {
-        return typeof value === "number" ? value.toFixed(2) : "--";
       },
       formatBytes: function (value) {
         if (!value) {

@@ -6,7 +6,7 @@ PROJECT_ROOT=$(cd -- "$(dirname -- "$0")/.." && pwd)
 . "$PROJECT_ROOT/deploy/lib/platform.sh"
 
 fixture_root=$(mktemp -d)
-trap 'rm -rf "$fixture_root"' EXIT
+trap 'rm -rf "$fixture_root" 2>/dev/null || true' EXIT
 
 assert_equal() {
     expected=$1

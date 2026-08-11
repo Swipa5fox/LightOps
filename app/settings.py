@@ -9,24 +9,14 @@ from pathlib import Path
 _SERVICE_NAME = re.compile(r"^[A-Za-z0-9_.@-]+$")
 
 
-def _env_float(name: str, default: float) -> float:
+def _env_number(name: str, default: int | float, cast: type) -> int | float:
     raw = os.getenv(name)
     if raw is None:
         return default
     try:
-        return float(raw)
+        return cast(raw)
     except ValueError as exc:
         raise RuntimeError(f"{name} must be a number") from exc
-
-
-def _env_int(name: str, default: int) -> int:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    try:
-        return int(raw)
-    except ValueError as exc:
-        raise RuntimeError(f"{name} must be an integer") from exc
 
 
 def _services() -> tuple[str, ...]:
@@ -55,15 +45,15 @@ class Settings:
     )
     sudo_path: str = os.getenv("LIGHTOPS_SUDO_PATH", "/usr/bin/sudo")
     services: tuple[str, ...] = _services()
-    collect_interval_seconds: int = _env_int("LIGHTOPS_COLLECT_INTERVAL", 60)
-    retention_days: int = _env_int("LIGHTOPS_RETENTION_DAYS", 7)
-    alert_cooldown_minutes: int = _env_int("LIGHTOPS_ALERT_COOLDOWN_MINUTES", 15)
-    cpu_threshold: float = _env_float("LIGHTOPS_CPU_THRESHOLD", 85.0)
-    memory_threshold: float = _env_float("LIGHTOPS_MEMORY_THRESHOLD", 85.0)
-    disk_threshold: float = _env_float("LIGHTOPS_DISK_THRESHOLD", 80.0)
-    weather_cache_seconds: int = _env_int("LIGHTOPS_WEATHER_CACHE_SECONDS", 1800)
-    weather_request_timeout_seconds: int = _env_int(
-        "LIGHTOPS_WEATHER_REQUEST_TIMEOUT_SECONDS", 8
+    collect_interval_seconds: int = _env_number("LIGHTOPS_COLLECT_INTERVAL", 60, int)
+    retention_days: int = _env_number("LIGHTOPS_RETENTION_DAYS", 7, int)
+    alert_cooldown_minutes: int = _env_number("LIGHTOPS_ALERT_COOLDOWN_MINUTES", 15, int)
+    cpu_threshold: float = _env_number("LIGHTOPS_CPU_THRESHOLD", 85.0, float)
+    memory_threshold: float = _env_number("LIGHTOPS_MEMORY_THRESHOLD", 85.0, float)
+    disk_threshold: float = _env_number("LIGHTOPS_DISK_THRESHOLD", 80.0, float)
+    weather_cache_seconds: int = _env_number("LIGHTOPS_WEATHER_CACHE_SECONDS", 1800, int)
+    weather_request_timeout_seconds: int = _env_number(
+        "LIGHTOPS_WEATHER_REQUEST_TIMEOUT_SECONDS", 8, int
     )
 
     def validate(self) -> None:

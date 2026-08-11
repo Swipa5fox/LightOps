@@ -4,6 +4,8 @@ set -Eeuo pipefail
 PACKAGE_ROOT=$(cd -- "$(dirname -- "$0")/.." && pwd)
 # shellcheck source=deploy/lib/platform.sh
 . "$PACKAGE_ROOT/deploy/lib/platform.sh"
+# shellcheck source=deploy/lib/config.sh
+. "$PACKAGE_ROOT/deploy/lib/config.sh"
 
 if [ -f "$PACKAGE_ROOT/config.env" ]; then
     set -a
@@ -75,7 +77,7 @@ validate_release_assets() {
         app/static/style.css \
         app/static/app.js \
         app/static/render.js \
-        app/static/vendor/vue.global.prod.js
+        app/static/vendor/vue.runtime.global.prod.js
     do
         if [ ! -s "$PACKAGE_ROOT/$release_asset" ]; then
             fail "release asset is missing or empty: $release_asset"
@@ -111,37 +113,6 @@ install_packages() {
 require_command() {
     if ! command -v "$1" >/dev/null 2>&1; then
         fail "required command is missing after package installation: $1"
-    fi
-}
-
-write_env_setting() {
-    target_file=$1
-    setting_name=$2
-    setting_value=$3
-    temporary_file=$(mktemp "$CONFIG_ROOT/.lightops-env.XXXXXX")
-    awk -v key="$setting_name" -v value="$setting_value" '
-        BEGIN { written = 0 }
-        index($0, key "=") == 1 {
-            print key "='\''" value "'\''"
-            written = 1
-            next
-        }
-        { print }
-        END {
-            if (!written) {
-                print key "='\''" value "'\''"
-            }
-        }
-    ' "$target_file" > "$temporary_file"
-    mv -f "$temporary_file" "$target_file"
-}
-
-ensure_env_setting() {
-    target_file=$1
-    setting_name=$2
-    setting_value=$3
-    if ! grep -q "^$setting_name=" "$target_file"; then
-        write_env_setting "$target_file" "$setting_name" "$setting_value"
     fi
 }
 
@@ -276,36 +247,22 @@ if [ ! -f "$ENV_FILE" ]; then
     printf "LIGHTOPS_API_TOKEN='%s'\n" "$api_token" > "$ENV_FILE"
     unset api_token
 fi
-write_env_setting "$ENV_FILE" LIGHTOPS_CLOUD_PROVIDER "$cloud_provider"
-write_env_setting "$ENV_FILE" LIGHTOPS_DB_PATH "$STATE_ROOT/lightops.db"
-write_env_setting "$ENV_FILE" LIGHTOPS_BACKUP_DIR "$STATE_ROOT/backups"
-write_env_setting "$ENV_FILE" LIGHTOPS_SERVICES "$monitored_services"
-write_env_setting "$ENV_FILE" LIGHTOPS_SYSTEMCTL_PATH "$LIGHTOPS_SYSTEMCTL_PATH"
-write_env_setting "$ENV_FILE" LIGHTOPS_SUDO_PATH "$sudo_path"
-ensure_env_setting "$ENV_FILE" LIGHTOPS_COLLECT_INTERVAL 60
-ensure_env_setting "$ENV_FILE" LIGHTOPS_RETENTION_DAYS 7
-ensure_env_setting "$ENV_FILE" LIGHTOPS_CPU_THRESHOLD 85
-ensure_env_setting "$ENV_FILE" LIGHTOPS_MEMORY_THRESHOLD 85
-ensure_env_setting "$ENV_FILE" LIGHTOPS_DISK_THRESHOLD 80
+lightops_write_env_setting "$ENV_FILE" LIGHTOPS_CLOUD_PROVIDER "$cloud_provider"
+lightops_write_env_setting "$ENV_FILE" LIGHTOPS_DB_PATH "$STATE_ROOT/lightops.db"
+lightops_write_env_setting "$ENV_FILE" LIGHTOPS_BACKUP_DIR "$STATE_ROOT/backups"
+lightops_write_env_setting "$ENV_FILE" LIGHTOPS_SERVICES "$monitored_services"
+lightops_write_env_setting "$ENV_FILE" LIGHTOPS_SYSTEMCTL_PATH "$LIGHTOPS_SYSTEMCTL_PATH"
+lightops_write_env_setting "$ENV_FILE" LIGHTOPS_SUDO_PATH "$sudo_path"
+lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_COLLECT_INTERVAL 60
+lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_RETENTION_DAYS 7
+lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_CPU_THRESHOLD 85
+lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_MEMORY_THRESHOLD 85
+lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_DISK_THRESHOLD 80
 chown root:lightops "$ENV_FILE"
 chmod 0640 "$ENV_FILE"
 
 sudoers_candidate=$(mktemp /etc/sudoers.d/lightops.XXXXXX)
-{
-    printf 'Cmnd_Alias LIGHTOPS_RESTART = '
-    first_service=1
-    old_ifs=$IFS
-    IFS=,
-    for allowed_service in $monitored_services; do
-        if [ "$first_service" -eq 0 ]; then
-            printf ', '
-        fi
-        printf '%s restart %s' "$LIGHTOPS_SYSTEMCTL_PATH" "$allowed_service"
-        first_service=0
-    done
-    IFS=$old_ifs
-    printf '\nlightops ALL=(root) NOPASSWD: LIGHTOPS_RESTART\n'
-} > "$sudoers_candidate"
+lightops_render_sudoers "$sudoers_candidate" "$LIGHTOPS_SYSTEMCTL_PATH" "$monitored_services"
 chmod 0440 "$sudoers_candidate"
 if ! visudo -cf "$sudoers_candidate"; then
     rm -f "$sudoers_candidate"

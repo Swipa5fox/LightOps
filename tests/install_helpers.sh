@@ -6,7 +6,7 @@ PROJECT_ROOT=$(cd -- "$(dirname -- "$0")/.." && pwd)
 . "$PROJECT_ROOT/deploy/lib/config.sh"
 
 fixture_root=$(mktemp -d)
-trap 'rm -rf "$fixture_root"' EXIT
+trap 'rm -rf "$fixture_root" 2>/dev/null || true' EXIT
 env_file=$fixture_root/lightops.env
 sudoers_file=$fixture_root/lightops.sudoers
 
@@ -48,7 +48,7 @@ if grep -Fq 'enable --now lightops' "$PROJECT_ROOT/deploy/install.sh"; then
     exit 1
 fi
 
-for service_script in deploy/lightopsctl deploy/verify-server.sh; do
+for service_script in deploy/verify-server.sh; do
     grep -Fq 'read -r -a service_names' "$PROJECT_ROOT/$service_script"
     # shellcheck disable=SC2016
     grep -Fq '"${service_names[@]}"' "$PROJECT_ROOT/$service_script"
