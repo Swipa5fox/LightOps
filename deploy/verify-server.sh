@@ -52,7 +52,7 @@ test "$unauthorized_status" = 401
 test "$authorized_status" = 200
 
 echo "STATIC_ASSETS"
-curl --fail --silent --show-error --head "http://127.0.0.1:$PUBLIC_PORT/vendor/vue.global.prod.js" | head -n 8
+curl --fail --silent --show-error --head "http://127.0.0.1:$PUBLIC_PORT/vendor/vue.runtime.global.prod.js" | head -n 8
 curl --fail --silent --show-error --head "http://127.0.0.1:$PUBLIC_PORT/render.js" | head -n 8
 
 echo "PERMISSIONS"
