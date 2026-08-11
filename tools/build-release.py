@@ -28,7 +28,7 @@ REQUIRED_FILES = (
     "app/static/index.html",
     "app/static/app.js",
     "app/static/render.js",
-    "app/static/vendor/vue.global.prod.js",
+    "app/static/vendor/vue.runtime.global.prod.js",
     "deploy/install.sh",
     "deploy/preflight.sh",
 )
@@ -91,8 +91,6 @@ def build(output: Path) -> str:
     missing = [name for name in REQUIRED_FILES if not (ROOT / name).is_file()]
     if missing:
         raise RuntimeError("Missing release files: " + ", ".join(missing))
-    if (ROOT / "app/static/vendor/echarts.min.js").exists():
-        raise RuntimeError("Unused ECharts asset must be removed before packaging")
 
     output.parent.mkdir(parents=True, exist_ok=True)
     paths = [ROOT, *(path for path in ROOT.rglob("*") if included(path))]

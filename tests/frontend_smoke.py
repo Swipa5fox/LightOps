@@ -72,6 +72,10 @@ index = (STATIC / "index.html").read_text(encoding="utf-8")
 style = (STATIC / "style.css").read_text(encoding="utf-8")
 script = (STATIC / "app.js").read_text(encoding="utf-8")
 render = (STATIC / "render.js").read_text(encoding="utf-8")
+version_source = (ROOT / "app" / "__init__.py").read_text(encoding="utf-8")
+version_match = re.search(r'^__version__\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"$', version_source, re.MULTILINE)
+assert version_match, "application version source is missing"
+current_version = version_match.group(1)
 nginx = (ROOT / "deploy" / "lightops.nginx.conf").read_text(encoding="utf-8")
 installer = (ROOT / "deploy" / "install.sh").read_text(encoding="utf-8")
 
@@ -84,7 +88,7 @@ assert not parser.inline_style, "inline style blocks violate the production CSP"
 assert not parser.inline_event_handler, "inline event handlers violate the production CSP"
 assert not parser.inline_style_attribute, "inline style attributes violate the production CSP"
 assert parser.deferred_scripts == {
-    "/vendor/vue.global.prod.js",
+    "/vendor/vue.runtime.global.prod.js",
     "/render.js",
     "/app.js",
 }, "the production scripts must load locally and defer in dependency order"
@@ -96,7 +100,7 @@ for reference in parser.references:
     if local_path is not None:
         assert local_path.is_file(), f"missing frontend resource: {reference}"
 
-assert (STATIC / "vendor" / "vue.global.prod.js").is_file()
+assert (STATIC / "vendor" / "vue.runtime.global.prod.js").is_file()
 assert not (STATIC / "vendor" / "echarts.min.js").exists(), "unused ECharts must not return"
 
 dangerous_patterns = {
@@ -119,14 +123,23 @@ assert "searchWeather" in script, "weather must support place search"
 assert "WEATHER_PLACE_KEY" in script and "sessionStorage" in script
 assert 'class="weather-emblem"' in index
 assert 'aria-label="每日天气"' in index
-assert "/vendor/qweather/" in index, "QWeather icons must be referenced from /vendor/qweather/"
+assert "/icons/weather-" in index, "weather icons must be referenced from /icons/weather-<code>.svg"
+assert 'href="/icons/favicon.svg"' in index, "favicon must be referenced from /icons/favicon.svg"
+assert (STATIC / "icons" / "favicon.svg").is_file(), "icons/favicon.svg must exist"
+assert (STATIC / "icons" / "weather-150.svg").is_file(), "icons/weather-150.svg must exist"
+assert not (STATIC / "vendor" / "qweather").exists(), "old vendor/qweather icon directory must be removed"
 assert "/api/weather" in script
 assert 'role="progressbar"' in index
 assert 'aria-live="polite"' in index
 assert 'id="trend-description"' in index
 assert "button:focus-visible" in style
 assert "prefers-reduced-motion" in style
-assert '"0.1.2"' in render, "render.js must be regenerated for the current release"
+assert "每 60 秒采样" not in index, "the CPU sampling note must stay removed"
+assert "每 60 秒采样" not in render, "render.js must be regenerated after removing the CPU sampling note"
+assert 'summary.version ? "v" + summary.version : "版本加载中"' in index
+assert current_version not in index, "the frontend must not hardcode a fallback application version"
+assert f'"版本加载中"' in render, "render.js must expose a neutral loading state"
+assert f'|| "{current_version}"' not in render, "render.js must not hardcode a fallback application version"
 
 csp_match = re.search(r'Content-Security-Policy "([^"]+)"', nginx)
 assert csp_match, "Nginx CSP header is missing"
@@ -149,7 +162,7 @@ assert "Permissions-Policy" in nginx
 assert "cdn.jsdelivr.net" not in installer
 assert "echarts" not in installer.lower()
 assert "app/static/render.js" in installer
-assert "app/static/vendor/vue.global.prod.js" in installer
+assert "app/static/vendor/vue.runtime.global.prod.js" in installer
 
 node = shutil.which("node")
 if node:
