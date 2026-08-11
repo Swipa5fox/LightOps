@@ -330,8 +330,8 @@ button:focus-visible,
   height: 48px;
   flex: 0 0 48px;
   background-color: currentColor;
-  -webkit-mask-image: var(--qi-url, url(/vendor/qweather/150.svg));
-  mask-image: var(--qi-url, url(/vendor/qweather/150.svg));
+  -webkit-mask-image: var(--qi-url, url(/icons/weather-150.svg));
+  mask-image: var(--qi-url, url(/icons/weather-150.svg));
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-position: center;
@@ -404,7 +404,8 @@ button:focus-visible,
   font-size: 11px;
   letter-spacing: 0.02em;
   text-transform: none;
-  max-width: 260px;
+  white-space: nowrap;
+  max-width: none;
   line-height: 1.45;
   margin-top: -2px;
 }
@@ -546,8 +547,31 @@ h1 {
 }
 
 .hero-status {
-  gap: 12px;
+  gap: 6px 12px;
   justify-self: end;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.hero-status-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-status-uptime {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: flex-end;
+  font-size: 12px;
+}
+
+.hero-status-uptime .uptime-glyph {
+  flex-shrink: 0;
+  color: var(--teal);
+  opacity: 0.85;
 }
 
 .hero-heading {
@@ -635,6 +659,14 @@ h1 {
 .metric-card {
   min-height: 158px;
   padding: 21px;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .metric-label {
@@ -684,7 +716,41 @@ h1 {
 }
 
 .cpu-card .metric-value {
-  margin-top: 12px;
+  flex-shrink: 0;
+}
+
+.load-average {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.load-average-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.load-average-item strong {
+  color: #dbe6f3;
+  font-size: 13px;
+  font-weight: 640;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.load-average-item small {
+  color: #60728a;
+  font-size: 10px;
+}
+
+.load-average-sep {
+  color: #3f5065;
+  font-size: 13px;
+  line-height: 1;
 }
 
 .capacity-details {
@@ -709,8 +775,6 @@ h1 {
 .processor-spec {
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  margin-top: 5px;
   padding: 0 8px;
   border: 1px solid rgba(94, 234, 212, 0.16);
   border-radius: 6px;
@@ -753,8 +817,8 @@ h1 {
 }
 
 .alert-summary {
-  display: inline-block;
-  margin-top: 7px;
+  display: inline-flex;
+  align-items: center;
   padding: 3px 8px;
   border-radius: 5px;
   color: #fda4af;
@@ -1262,6 +1326,10 @@ footer {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+  }
+
+  .hero-status-uptime {
+    width: auto;
   }
 
   .hero-heading {
