@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark" />
+    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
     <title>LightOps · 轻量运维控制台</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
@@ -51,7 +52,7 @@
           </div>
           <div class="hero-weather" aria-label="每日天气">
             <div class="weather-emblem" :class="'weather-' + (weatherKind || 'idle')">
-              <div class="weather-emblem-icon" :style="{ '--qi-url': 'url(/vendor/qweather/' + (qweatherCode || 150) + '.svg)' }" :title="weather ? (weather.location_label || weatherLabel) : '每日天气'" aria-hidden="true"></div>
+              <div class="weather-emblem-icon" :style="{ '--qi-url': 'url(/icons/weather-' + (qweatherCode || 150) + '.svg)' }" :title="weather ? (weather.location_label || weatherLabel) : '每日天气'" aria-hidden="true"></div>
               <div v-if="weather" class="weather-emblem-readout">
                 <strong>{{ formatTemperature(weather.current.temperature) }}</strong>
                 <span>{{ weatherLabel }}</span>
@@ -91,15 +92,24 @@
           </div>
 
           <div class="hero-status">
-            <span
-              class="status-badge"
-              :class="{ healthy: updatedAt && !error, pending: !updatedAt && !error }"
-              role="status"
-              aria-live="polite"
-            >
-              {{ error ? "数据异常" : (updatedAt ? "系统运行中" : "正在连接") }}
+            <div class="hero-status-row">
+              <span
+                class="status-badge"
+                :class="{ healthy: updatedAt && !error, pending: !updatedAt && !error }"
+                role="status"
+                aria-live="polite"
+              >
+                {{ error ? "数据异常" : (updatedAt ? "系统运行中" : "正在连接") }}
+              </span>
+              <span class="muted">{{ summary.version ? "v" + summary.version : "版本加载中" }}</span>
+            </div>
+            <span class="hero-status-uptime muted" aria-label="服务器运行时间">
+              <svg class="uptime-glyph" width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"></circle>
+                <path d="M8 4.5 V8 L10.4 9.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+              已运行 {{ uptimeLabel || "加载中" }}
             </span>
-            <span class="muted">v{{ summary.version || "0.1.2" }}</span>
           </div>
         </section>
 
@@ -109,11 +119,27 @@
           <article class="metric-card cpu-card">
             <div class="metric-card-head">
               <div class="metric-label">处理器负载</div>
+              <span class="processor-spec">{{ host.cpu_count || "--" }} 核 CPU</span>
               <span class="metric-state" :class="cpuStatusClass">{{ cpuStatus }}</span>
             </div>
-            <div class="metric-value">{{ formatPercent(metric.cpu_percent) }}</div>
-            <div class="processor-spec">
-              {{ host.cpu_count || "--" }} 核 CPU
+            <div class="metric-body">
+              <div class="metric-value">{{ formatPercent(metric.cpu_percent) }}</div>
+              <div class="load-average" aria-label="平均负载（1 分钟 / 5 分钟 / 15 分钟）">
+                <div class="load-average-item">
+                  <strong>{{ formatLoad(metric.load_1) }}</strong>
+                  <small>1分</small>
+                </div>
+                <span class="load-average-sep" aria-hidden="true">·</span>
+                <div class="load-average-item">
+                  <strong>{{ formatLoad(metric.load_5) }}</strong>
+                  <small>5分</small>
+                </div>
+                <span class="load-average-sep" aria-hidden="true">·</span>
+                <div class="load-average-item">
+                  <strong>{{ formatLoad(metric.load_15) }}</strong>
+                  <small>15分</small>
+                </div>
+              </div>
             </div>
             <div
               class="progress-track"
@@ -126,17 +152,19 @@
             >
               <span :style="{ width: clampPercent(metric.cpu_percent) }"></span>
             </div>
-            <div class="metric-foot">当前整体 CPU 占用 · 每 60 秒采样</div>
+            <div class="metric-foot">当前整体 CPU 占用</div>
           </article>
           <article class="metric-card">
             <div class="metric-card-head">
               <div class="metric-label">内存使用情况</div>
               <span class="metric-state" :class="statusClass(metric.memory_percent)">{{ statusLabel(metric.memory_percent) }}</span>
             </div>
-            <div class="metric-value">{{ formatPercent(metric.memory_percent) }}</div>
-            <div class="capacity-details">
-              <strong>{{ formatBytes(host.memory_used) }}</strong>
-              <span>/ {{ formatBytes(host.memory_total) }}</span>
+            <div class="metric-body">
+              <div class="metric-value">{{ formatPercent(metric.memory_percent) }}</div>
+              <div class="capacity-details">
+                <strong>{{ formatBytes(host.memory_used) }}</strong>
+                <span>/ {{ formatBytes(host.memory_total) }}</span>
+              </div>
             </div>
             <div
               class="progress-track violet"
@@ -156,10 +184,12 @@
               <div class="metric-label">系统盘使用情况</div>
               <span class="metric-state" :class="statusClass(metric.disk_percent)">{{ statusLabel(metric.disk_percent) }}</span>
             </div>
-            <div class="metric-value">{{ formatPercent(metric.disk_percent) }}</div>
-            <div class="capacity-details">
-              <strong>{{ formatBytes(host.disk_used) }}</strong>
-              <span>/ {{ formatBytes(host.disk_total) }}</span>
+            <div class="metric-body">
+              <div class="metric-value">{{ formatPercent(metric.disk_percent) }}</div>
+              <div class="capacity-details">
+                <strong>{{ formatBytes(host.disk_used) }}</strong>
+                <span>/ {{ formatBytes(host.disk_total) }}</span>
+              </div>
             </div>
             <div
               class="progress-track amber"
@@ -175,10 +205,25 @@
             <div class="metric-foot">剩余空间 {{ formatBytes(host.disk_free) }}</div>
           </article>
           <article class="metric-card">
-            <div class="metric-label">活动告警</div>
-            <div class="metric-value">{{ alerts.length }}</div>
-            <div class="alert-summary" :class="{ clear: alerts.length === 0 }">
-              {{ alerts.length ? "需要关注" : "当前无异常" }}
+            <div class="metric-card-head">
+              <div class="metric-label">活动告警</div>
+              <span class="alert-summary" :class="{ clear: alerts.length === 0 }">
+                {{ alerts.length ? "需要关注" : "当前无异常" }}
+              </span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-value">{{ alerts.length }}</div>
+            </div>
+            <div
+              class="progress-track"
+              role="progressbar"
+              aria-label="服务健康率"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-valuenow="services.length ? Math.round(servicesUp / services.length * 100) : 0"
+              :aria-valuetext="(services.length ? Math.round(servicesUp / services.length * 100) : 0) + '%'"
+            >
+              <span :style="{ width: services.length ? (servicesUp / services.length * 100) + '%' : '0%' }"></span>
             </div>
             <div class="metric-foot">{{ servicesUp }} / {{ services.length }} 服务正常</div>
           </article>
@@ -350,7 +395,7 @@
       </main>
     </div>
 
-    <script src="/vendor/vue.global.prod.js" defer></script>
+    <script src="/vendor/vue.runtime.global.prod.js" defer></script>
     <script src="/render.js" defer></script>
     <script src="/app.js" defer></script>
   </body>

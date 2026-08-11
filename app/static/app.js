@@ -6,6 +6,7 @@
   var WEATHER_PLACE_KEY = "lightops_weather_place";
   var REQUEST_TIMEOUT_MS = 10000;
   var WEATHER_REFRESH_MS = 30 * 60 * 1000;
+  var CLOCK_REFRESH_MS = 60 * 1000;
 
   function readToken() {
     try {
@@ -88,7 +89,9 @@
         weatherLoading: false,
         weatherError: "",
         weatherPlace: "",
-        weatherTimer: null
+        weatherTimer: null,
+        clockTimer: null,
+        currentTime: new Date()
       };
     },
     computed: {
@@ -210,6 +213,24 @@
         if (!this.weather) {
           return "";
         }
+        var hour = this.currentTime.getHours();
+        if (hour >= 23 || hour < 6) {
+          var nightTips = hour < 2
+            ? [
+                "夜色已上线，今天辛苦啦，早点睡 zZZ",
+                "23 点后的风景留给梦里，收好电脑，去和周公碰个面吧"
+              ]
+            : hour < 5
+              ? [
+                  "夜深啦，别让思绪加班到凌晨，泡杯温水就准备休息吧",
+                  "月亮都在值夜班，你就别跟它抢工位啦，早点睡 zZZ"
+                ]
+              : [
+                  "天快亮了，先别急着硬撑，能睡一会儿就把被子盖好吧",
+                  "凌晨的风很轻，眼睛也该下班啦，补个好觉再出发"
+                ];
+          return nightTips[this.currentTime.getDate() % nightTips.length];
+        }
         var tip = this.weather.tip;
         return typeof tip === "string" ? tip : "";
       },
@@ -224,6 +245,26 @@
           return this.weather.location_label;
         }
         return "";
+      },
+      uptimeLabel: function () {
+        var boot = Number(this.host.boot_time);
+        if (!Number.isFinite(boot) || boot <= 0) {
+          return "";
+        }
+        var seconds = Math.max(0, Math.floor(Date.now() / 1000 - boot));
+        if (seconds < 60) {
+          return seconds + " 秒";
+        }
+        var days = Math.floor(seconds / 86400);
+        var hours = Math.floor((seconds % 86400) / 3600);
+        var minutes = Math.floor((seconds % 3600) / 60);
+        if (days > 0) {
+          return days + " 天 " + hours + " 小时 " + minutes + " 分";
+        }
+        if (hours > 0) {
+          return hours + " 小时 " + minutes + " 分";
+        }
+        return minutes + " 分";
       }
     },
       mounted: function () {
@@ -232,10 +273,14 @@
         this.initializeWeather();
         this.refreshTimer = window.setInterval(this.refresh, 30000);
         this.weatherTimer = window.setInterval(this.refreshWeather, WEATHER_REFRESH_MS);
+        this.clockTimer = window.setInterval(function () {
+          this.currentTime = new Date();
+        }.bind(this), CLOCK_REFRESH_MS);
       },
       beforeUnmount: function () {
         window.clearInterval(this.refreshTimer);
         window.clearInterval(this.weatherTimer);
+        window.clearInterval(this.clockTimer);
       },
     methods: {
       authHeaders: function () {
@@ -586,6 +631,10 @@
       formatPercent: function (value) {
         return typeof value === "number" ? value.toFixed(1) + "%" : "--";
       },
+      formatLoad: function (value) {
+        var n = Number(value);
+        return Number.isFinite(n) ? n.toFixed(2) : "--";
+      },
       clampPercent: function (value) {
         return this.clampNumber(value) + "%";
       },
@@ -632,7 +681,7 @@
         if (!value) {
           return "--";
         }
-        return (value / 1073741824).toFixed(1) + " GiB";
+        return (value / 1073741824).toFixed(1) + " GB";
       },
       formatTime: function (value) {
         return value ? new Date(value).toLocaleString("zh-CN", { hour12: false }) : "--";
