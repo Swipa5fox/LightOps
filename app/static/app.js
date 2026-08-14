@@ -3,10 +3,31 @@
 
   var createApp = window.Vue.createApp;
   var TOKEN_KEY = "lightops_api_token";
+  var SESSION_KEY = "lightops_session";
   var WEATHER_PLACE_KEY = "lightops_weather_place";
   var REQUEST_TIMEOUT_MS = 10000;
   var WEATHER_REFRESH_MS = 30 * 60 * 1000;
   var CLOCK_REFRESH_MS = 60 * 1000;
+
+  function readSession() {
+    try {
+      return window.sessionStorage.getItem(SESSION_KEY) || "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function writeSession(token) {
+    try {
+      if (token) {
+        window.sessionStorage.setItem(SESSION_KEY, token);
+      } else {
+        window.sessionStorage.removeItem(SESSION_KEY);
+      }
+    } catch (error) {
+      // Storage can be unavailable in hardened or private browser contexts.
+    }
+  }
 
   function readToken() {
     try {
@@ -91,7 +112,18 @@
         weatherPlace: "",
         weatherTimer: null,
         clockTimer: null,
-        currentTime: new Date()
+        currentTime: new Date(),
+        showLogin: false,
+        showUserPanel: false,
+        currentUser: "",
+        loginBusy: false,
+        loginError: "",
+        loginForm: { username: "", password: "" },
+        passwordBusy: false,
+        passwordError: "",
+        passwordSuccess: "",
+        passwordForm: { oldPassword: "", newPassword: "", confirmPassword: "" },
+        logoutBusy: false
       };
     },
     computed: {
@@ -256,6 +288,7 @@
         this.clockTimer = window.setInterval(function () {
           this.currentTime = new Date();
         }.bind(this), CLOCK_REFRESH_MS);
+        this.restoreLogin();
       },
       beforeUnmount: function () {
         window.clearInterval(this.refreshTimer);
@@ -264,8 +297,116 @@
       },
     methods: {
       authHeaders: function () {
-        var token = readToken();
+        var token = readSession() || readToken();
         return token ? { Authorization: "Bearer " + token } : {};
+      },
+      restoreLogin: async function () {
+        var session = readSession();
+        if (!session) {
+          return;
+        }
+        try {
+          var me = await this.fetchJson("/api/auth/me", {
+            headers: this.authHeaders()
+          });
+          this.currentUser = me.username || "";
+        } catch (error) {
+          writeSession("");
+          this.currentUser = "";
+        }
+      },
+      openUserPanel: function () {
+        if (this.currentUser) {
+          this.passwordError = "";
+          this.passwordSuccess = "";
+          this.passwordForm = { oldPassword: "", newPassword: "", confirmPassword: "" };
+          this.showUserPanel = true;
+        } else {
+          this.showLogin = true;
+        }
+      },
+      closeLogin: function () {
+        this.showLogin = false;
+        this.loginError = "";
+      },
+      closeUserPanel: function () {
+        this.showUserPanel = false;
+      },
+      submitLogin: async function () {
+        var username = (this.loginForm.username || "").trim();
+        var password = this.loginForm.password || "";
+        if (!username || !password) {
+          return;
+        }
+        this.loginBusy = true;
+        this.loginError = "";
+        try {
+          var result = await this.fetchJson("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: username, password: password })
+          });
+          writeSession(result.token || "");
+          this.currentUser = result.username || username;
+          this.showLogin = false;
+          this.loginForm = { username: "", password: "" };
+        } catch (error) {
+          this.loginError = error.message || "登录失败";
+        } finally {
+          this.loginBusy = false;
+        }
+      },
+      logout: async function () {
+        this.logoutBusy = true;
+        try {
+          await this.fetchJson("/api/logout", {
+            method: "POST",
+            headers: this.authHeaders()
+          });
+        } catch (error) {
+          // 即使服务端失败，本地会话也清除。
+        } finally {
+          writeSession("");
+          this.currentUser = "";
+          this.showUserPanel = false;
+          this.logoutBusy = false;
+        }
+      },
+      submitChangePassword: async function () {
+        var oldPassword = this.passwordForm.oldPassword;
+        var newPassword = this.passwordForm.newPassword;
+        var confirmPassword = this.passwordForm.confirmPassword;
+        this.passwordError = "";
+        this.passwordSuccess = "";
+        if (!oldPassword || !newPassword) {
+          this.passwordError = "请填写原密码和新密码";
+          return;
+        }
+        if (newPassword.length < 6) {
+          this.passwordError = "新密码至少 6 位";
+          return;
+        }
+        if (newPassword !== confirmPassword) {
+          this.passwordError = "两次输入的新密码不一致";
+          return;
+        }
+        this.passwordBusy = true;
+        try {
+          await this.fetchJson("/api/change-password", {
+            method: "POST",
+            headers: Object.assign({ "Content-Type": "application/json" }, this.authHeaders()),
+            body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
+          });
+          this.passwordSuccess = "密码已更新，请重新登录";
+          this.passwordForm = { oldPassword: "", newPassword: "", confirmPassword: "" };
+          // 服务端已使旧会话失效，本地立即退出登录态。
+          writeSession("");
+          this.currentUser = "";
+        } catch (error) {
+          this.passwordError = error.message || "密码修改失败";
+        } finally {
+          this.passwordBusy = false;
+        }
       },
       initializeWeather: function () {
         this.weatherPlace = readWeatherPlace();
