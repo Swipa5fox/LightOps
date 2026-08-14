@@ -25,6 +25,7 @@ from fastapi import (
 )
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
 from . import __version__, collector, db, weather
 from .settings import settings
@@ -71,6 +72,27 @@ def require_token(
             detail="valid bearer token required",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+# ---------------------------------------------------------------------------
+# 用户认证（登录 / 退出 / 改密码）
+# ---------------------------------------------------------------------------
+
+class LoginRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=1, max_length=128)
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=6, max_length=128)
+
+
+def _bearer_token(authorization: str | None) -> str | None:
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization[len("Bearer "):].strip()
+    return token or None
 
 
 def scheduled_maintenance() -> None:
@@ -120,6 +142,73 @@ app = FastAPI(
     redoc_url=None,
     lifespan=lifespan,
 )
+
+
+@app.get("/api/auth/me")
+def auth_me(
+    authorization: Annotated[Optional[str], Header()] = None,
+) -> dict:
+    """返回当前登录用户；未登录返回 401（前端据此切换登录态）。"""
+    token = _bearer_token(authorization)
+    if not token:
+        raise HTTPException(status_code=401, detail="not logged in")
+    username = db.get_session_username(token)
+    if not username:
+        raise HTTPException(status_code=401, detail="session expired")
+    return {"authenticated": True, "username": username}
+
+
+@app.post("/api/login")
+def login(payload: LoginRequest, request: Request) -> dict:
+    remote_addr = request.client.host if request.client else "unknown"
+    user = db.get_user(payload.username)
+    if not user or not db.verify_password(payload.password, user["password_hash"]):
+        db.write_audit("login", payload.username, False, "bad credentials", remote_addr)
+        raise HTTPException(status_code=401, detail="用户名或密码错误")
+    token = db.create_session(payload.username)
+    db.write_audit("login", payload.username, True, "login ok", remote_addr)
+    return {"token": token, "username": payload.username}
+
+
+@app.post("/api/logout")
+def logout(
+    request: Request,
+    authorization: Annotated[Optional[str], Header()] = None,
+) -> dict:
+    token = _bearer_token(authorization)
+    remote_addr = request.client.host if request.client else "unknown"
+    if token:
+        username = db.get_session_username(token)
+        db.delete_session(token)
+        if username:
+            db.write_audit("logout", username, True, "logout ok", remote_addr)
+    return {"ok": True}
+
+
+@app.post("/api/change-password")
+def change_password(
+    payload: ChangePasswordRequest,
+    request: Request,
+    authorization: Annotated[Optional[str], Header()] = None,
+) -> dict:
+    token = _bearer_token(authorization)
+    remote_addr = request.client.host if request.client else "unknown"
+    if not token:
+        raise HTTPException(status_code=401, detail="not logged in")
+    username = db.get_session_username(token)
+    if not username:
+        raise HTTPException(status_code=401, detail="session expired")
+
+    user = db.get_user(username)
+    if not user or not db.verify_password(payload.old_password, user["password_hash"]):
+        db.write_audit("change_password", username, False, "wrong old password", remote_addr)
+        raise HTTPException(status_code=400, detail="原密码错误")
+
+    db.update_user_password(username, payload.new_password)
+    # 改密码后使所有旧会话失效，强制用新密码重新登录。
+    db.delete_user_sessions(username)
+    db.write_audit("change_password", username, True, "password changed", remote_addr)
+    return {"ok": True}
 
 
 @app.exception_handler(Exception)
@@ -226,7 +315,7 @@ def local_weather(
 @app.get("/api/metrics")
 def metrics(
     range_name: Annotated[
-        str, Query(alias="range", pattern="^(10m|1h|24h|7d)$")
+        str, Query(alias="range", pattern="^(10m|1h|24h|7d)$")]
     ] = "10m",
 ) -> dict:
     minutes = {

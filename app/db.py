@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import math
+import secrets
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -62,7 +65,30 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     remote_addr TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_audit_logs_ts ON audit_logs(ts);
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_username
+    ON sessions(username, expires_at);
 """
+
+# 会话存活时间：7 天，超过后需要重新登录。
+SESSION_TTL_DAYS = 7
+# 密码哈希迭代次数（PBKDF2-HMAC-SHA256）。120k 是 2026 年常见安全基线，
+# 在这台小内存服务器上每次登录/改密码只跑一次，开销可忽略。
+PBKDF2_ITERATIONS = 120_000
 
 
 def utc_now() -> str:
@@ -103,6 +129,119 @@ def init_db() -> None:
             conn.execute(
                 "ALTER TABLE service_samples ADD COLUMN buckets TEXT"
             )
+        # 首次初始化时写入默认管理员账号（Admin / 123456）。
+        # 该账号只在这里创建一次；之后改密码由 /api/change-password 处理。
+        count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        if count == 0:
+            conn.execute(
+                """
+                INSERT INTO users (username, password_hash, created_at, updated_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    DEFAULT_USERNAME,
+                    hash_password(DEFAULT_PASSWORD),
+                    utc_now(),
+                    utc_now(),
+                ),
+            )
+
+
+DEFAULT_USERNAME = "Admin"
+DEFAULT_PASSWORD = "123456"
+
+
+def hash_password(password: str) -> str:
+    """PBKDF2-HMAC-SHA256 密码哈希，格式: pbkdf2$iterations$salt_hex$digest_hex"""
+    salt = secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt, PBKDF2_ITERATIONS
+    )
+    return f"pbkdf2${PBKDF2_ITERATIONS}${salt.hex()}${digest.hex()}"
+
+
+def verify_password(password: str, stored: str) -> bool:
+    """常量时间比较验证密码哈希；格式不符时返回 False 而不是抛异常"""
+    try:
+        scheme, iterations, salt_hex, digest_hex = stored.split("$")
+        if scheme != "pbkdf2":
+            return False
+        salt = bytes.fromhex(salt_hex)
+        expected = bytes.fromhex(digest_hex)
+        actual = hashlib.pbkdf2_hmac(
+            "sha256", password.encode("utf-8"), salt, int(iterations)
+        )
+        return hmac.compare_digest(actual, expected)
+    except (ValueError, TypeError):
+        return False
+
+
+def get_user(username: str) -> dict[str, Any] | None:
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM users WHERE username = ?", (username,)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def update_user_password(username: str, new_password: str) -> None:
+    with connect() as conn:
+        conn.execute(
+            """
+            UPDATE users
+            SET password_hash = ?, updated_at = ?
+            WHERE username = ?
+            """,
+            (hash_password(new_password), utc_now(), username),
+        )
+
+
+def create_session(username: str) -> str:
+    """创建会话，返回随机 token"""
+    token = secrets.token_urlsafe(32)
+    expires = (
+        datetime.now(timezone.utc) + timedelta(days=SESSION_TTL_DAYS)
+    ).isoformat(timespec="seconds")
+    with connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO sessions (token, username, created_at, expires_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (token, username, utc_now(), expires),
+        )
+    return token
+
+
+def get_session_username(token: str) -> str | None:
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT username, expires_at FROM sessions WHERE token = ?",
+            (token,),
+        ).fetchone()
+    if not row:
+        return None
+    try:
+        expires = datetime.fromisoformat(str(row["expires_at"]))
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if expires < datetime.now(timezone.utc):
+            delete_session(token)
+            return None
+    except (TypeError, ValueError):
+        return None
+    return str(row["username"])
+
+
+def delete_session(token: str) -> None:
+    with connect() as conn:
+        conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
+
+
+def delete_user_sessions(username: str) -> None:
+    """改密码后使该用户的所有旧会话失效，强制重新登录"""
+    with connect() as conn:
+        conn.execute("DELETE FROM sessions WHERE username = ?", (username,))
 
 
 def insert_sample(metric: dict[str, Any], services: list[dict[str, Any]]) -> None:
@@ -298,7 +437,8 @@ def audit_logs(limit: int = 100) -> list[dict[str, Any]]:
 
 def cleanup_old_data() -> dict[str, int]:
     cutoff = (
-        datetime.now(timezone.utc) - timedelta(days=settings.retention_days)
+        datetime.now(timezone.utc)
+        - timedelta(days=settings.retention_days)
     ).isoformat(timespec="seconds")
     with connect() as conn:
         metrics_deleted = conn.execute(
