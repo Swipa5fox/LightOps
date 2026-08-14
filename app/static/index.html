@@ -21,6 +21,9 @@
         <div class="header-actions">
           <span class="live-dot" aria-hidden="true"></span>
           <span class="muted" aria-live="polite">最后更新 {{ updatedAt || "等待数据" }}</span>
+          <button type="button" class="ghost-button" @click="openUserPanel">
+            {{ currentUser ? currentUser : "登录" }}
+          </button>
           <button type="button" class="ghost-button" @click="saveToken">管理令牌</button>
           <button
             type="button"
@@ -33,6 +36,79 @@
           </button>
         </div>
       </header>
+
+      <!-- 登录弹窗 -->
+      <div v-if="showLogin" class="modal-mask" @click.self="closeLogin">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="login-title">
+          <div class="modal-head">
+            <h2 id="login-title">登录</h2>
+            <button type="button" class="modal-close" aria-label="关闭" @click="closeLogin">×</button>
+          </div>
+          <form class="modal-body" @submit.prevent="submitLogin">
+            <label class="modal-field">
+              <span>用户名</span>
+              <input v-model="loginForm.username" type="text" autocomplete="username" placeholder="Admin" required />
+            </label>
+            <label class="modal-field">
+              <span>密码</span>
+              <input v-model="loginForm.password" type="password" autocomplete="current-password" placeholder="••••••" required />
+            </label>
+            <p v-if="loginError" class="modal-error" role="alert">{{ loginError }}</p>
+            <div class="modal-actions">
+              <button type="button" class="ghost-button" @click="closeLogin">取消</button>
+              <button type="submit" class="primary-button" :disabled="loginBusy">
+                {{ loginBusy ? "登录中…" : "登录" }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- 用户管理弹窗 -->
+      <div v-if="showUserPanel" class="modal-mask" @click.self="closeUserPanel">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="user-panel-title">
+          <div class="modal-head">
+            <h2 id="user-panel-title">用户管理</h2>
+            <button type="button" class="modal-close" aria-label="关闭" @click="closeUserPanel">×</button>
+          </div>
+          <div class="modal-body">
+            <div v-if="currentUser" class="user-info">
+              <span class="user-info-label">当前用户</span>
+              <strong>{{ currentUser }}</strong>
+            </div>
+
+            <form v-if="currentUser" class="modal-form" @submit.prevent="submitChangePassword">
+              <h3 class="modal-subtitle">更改密码</h3>
+              <label class="modal-field">
+                <span>原密码</span>
+                <input v-model="passwordForm.oldPassword" type="password" autocomplete="current-password" required />
+              </label>
+              <label class="modal-field">
+                <span>新密码（至少 6 位）</span>
+                <input v-model="passwordForm.newPassword" type="password" autocomplete="new-password" minlength="6" required />
+              </label>
+              <label class="modal-field">
+                <span>确认新密码</span>
+                <input v-model="passwordForm.confirmPassword" type="password" autocomplete="new-password" minlength="6" required />
+              </label>
+              <p v-if="passwordError" class="modal-error" role="alert">{{ passwordError }}</p>
+              <p v-if="passwordSuccess" class="modal-success" role="status">{{ passwordSuccess }}</p>
+              <div class="modal-actions">
+                <button type="submit" class="primary-button" :disabled="passwordBusy">
+                  {{ passwordBusy ? "保存中…" : "更改密码" }}
+                </button>
+              </div>
+            </form>
+
+            <div class="modal-actions user-panel-actions">
+              <button type="button" class="ghost-button" @click="saveToken">管理令牌</button>
+              <button type="button" class="danger-button" :disabled="logoutBusy" @click="logout">
+                {{ logoutBusy ? "退出中…" : "退出登录" }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <main class="page-shell">
         <section class="hero" aria-labelledby="page-title">
