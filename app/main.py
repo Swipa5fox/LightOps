@@ -315,7 +315,7 @@ def local_weather(
 @app.get("/api/metrics")
 def metrics(
     range_name: Annotated[
-        str, Query(alias="range", pattern="^(10m|1h|24h|7d)$")]
+        str, Query(alias="range", pattern="^(10m|1h|24h|7d)$")
     ] = "10m",
 ) -> dict:
     minutes = {
