@@ -147,6 +147,153 @@ button {
   font-weight: 700;
 }
 
+/* ---- 登录 / 用户管理弹窗 ---- */
+.modal-mask {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh 16px 16px;
+  background: rgba(4, 10, 17, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  width: min(400px, 100%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-strong);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.modal-close {
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-field span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.modal-field input {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+}
+
+.modal-field input:focus {
+  outline: 2px solid var(--teal);
+  outline-offset: 1px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.modal-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.modal-success {
+  margin: 0;
+  color: var(--teal);
+  font-size: 12px;
+}
+
+.modal-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.user-info-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.danger-button {
+  cursor: pointer;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(251, 113, 133, 0.4);
+  border-radius: 8px;
+  background: rgba(251, 113, 133, 0.08);
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.danger-button:hover {
+  background: rgba(251, 113, 133, 0.16);
+}
+
+.user-panel-actions {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
 button:disabled {
   cursor: wait;
   opacity: 0.55;
