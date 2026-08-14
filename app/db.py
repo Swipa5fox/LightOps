@@ -86,7 +86,7 @@ CREATE INDEX IF NOT EXISTS idx_sessions_username
 
 # 会话存活时间：7 天，超过后需要重新登录。
 SESSION_TTL_DAYS = 7
-# 密码哈希迭代次数（PBKDF2-HMAC-SHA256）。120k 是 2026 年常见安全基线，
+# 密码哈希值迭代次数（PBKDF2-HMAC-SHA256）。120k 是 2026 年常见安全基线，
 # 在这台小内存服务器上每次登录/改密码只跑一次，开销可忽略。
 PBKDF2_ITERATIONS = 120_000
 
@@ -437,8 +437,7 @@ def audit_logs(limit: int = 100) -> list[dict[str, Any]]:
 
 def cleanup_old_data() -> dict[str, int]:
     cutoff = (
-        datetime.now(timezone.utc)
-        - timedelta(days=settings.retention_days)
+        datetime.now(timezone.utc) - timedelta(days=settings.retention_days)
     ).isoformat(timespec="seconds")
     with connect() as conn:
         metrics_deleted = conn.execute(
