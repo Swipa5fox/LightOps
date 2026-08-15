@@ -48,11 +48,10 @@ if grep -Fq 'enable --now lightops' "$PROJECT_ROOT/deploy/install.sh"; then
     exit 1
 fi
 
-for service_script in deploy/verify-server.sh; do
-    grep -Fq 'read -r -a service_names' "$PROJECT_ROOT/$service_script"
-    # shellcheck disable=SC2016
-    grep -Fq '"${service_names[@]}"' "$PROJECT_ROOT/$service_script"
-done
+service_script=deploy/verify-server.sh
+grep -Fq 'read -r -a service_names' "$PROJECT_ROOT/$service_script"
+# shellcheck disable=SC2016
+grep -Fq '"${service_names[@]}"' "$PROJECT_ROOT/$service_script"
 # shellcheck disable=SC2016
 if grep -Fq 'for monitored_service in lightops,$MONITORED_SERVICES' "$PROJECT_ROOT/deploy/lightopsctl"; then
     echo "lightopsctl must split the complete service CSV instead of a literal prefix" >&2
