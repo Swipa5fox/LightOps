@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号（例如 0.1.4，须与 app/__init__.py 的 __version__ 一致）'
+        required: true
 
 permissions:
   contents: write
@@ -18,19 +22,34 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v7
 
-      - name: 确定发布版本与文件
+      - name: 确定发布版本
         id: release
         shell: bash
         run: |
           set -Eeuo pipefail
-          tag="${GITHUB_REF_NAME}"
-          version="${tag#v}"
-          archive="releases/LightOps-${version}-integrated.tar.gz"
-          test -f "$archive"
-          test -f releases/SHA256SUMS
+          if [ "${{ github.event_name }}" = "push" ]; then
+            tag="${GITHUB_REF_NAME}"
+            version="${tag#v}"
+          else
+            version="${{ inputs.version }}"
+            tag="v${version}"
+          fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+          echo "archive=releases/LightOps-${version}-integrated.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: 设置 Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: 构建发布包
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python tools/build-release.py --output "${{ steps.release.outputs.archive }}"
+          cd releases
+          sha256sum "LightOps-${{ steps.release.outputs.version }}-integrated.tar.gz" > SHA256SUMS
 
       - name: 校验发布包 SHA-256
         working-directory: releases
@@ -47,10 +66,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          verify_flag=""
+          if [ "${{ github.event_name }}" = "push" ]; then
+            verify_flag="--verify-tag"
+          fi
           gh release create "${{ steps.release.outputs.tag }}" \
             "${{ steps.release.outputs.archive }}" \
             releases/SHA256SUMS \
-            --verify-tag \
+            $verify_flag \
             --title "LightOps ${{ steps.release.outputs.version }}" \
             --notes-file release-notes.md \
             --latest
