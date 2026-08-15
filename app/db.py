@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'guest',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -129,25 +130,50 @@ def init_db() -> None:
             conn.execute(
                 "ALTER TABLE service_samples ADD COLUMN buckets TEXT"
             )
-        # 首次初始化时写入默认管理员账号（Admin / 123456）。
-        # 该账号只在这里创建一次；之后改密码由 /api/change-password 处理。
-        count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-        if count == 0:
+        # Migration: add role column to users tables created before the
+        # admin/guest role split.  Existing rows default to 'guest'; the
+        # bootstrap admin is then promoted back to 'admin' below.
+        user_columns = [
+            row[1]
+            for row in conn.execute("PRAGMA table_info(users)").fetchall()
+        ]
+        if "role" not in user_columns:
             conn.execute(
-                """
-                INSERT INTO users (username, password_hash, created_at, updated_at)
-                VALUES (?, ?, ?, ?)
-                """,
-                (
-                    DEFAULT_USERNAME,
-                    hash_password(DEFAULT_PASSWORD),
-                    utc_now(),
-                    utc_now(),
-                ),
+                "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'guest'"
             )
+        # 种子账号：Admin（管理员，全权限）与 Guest（访客，只读）。
+        # 密码统一 123456；之后改密码由 /api/change-password 处理。
+        ensure_user(conn, DEFAULT_USERNAME, DEFAULT_PASSWORD, "admin")
+        ensure_user(conn, GUEST_USERNAME, DEFAULT_PASSWORD, "guest")
+
+
+def ensure_user(
+    conn: sqlite3.Connection,
+    username: str,
+    password: str,
+    role: str,
+) -> None:
+    row = conn.execute(
+        "SELECT id FROM users WHERE username = ?", (username,)
+    ).fetchone()
+    if row is None:
+        conn.execute(
+            """
+            INSERT INTO users (username, password_hash, role, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (username, hash_password(password), role, utc_now(), utc_now()),
+        )
+        return
+    # 已存在：确保角色正确（升级场景把旧 Admin 从默认 guest 提升回 admin）。
+    conn.execute(
+        "UPDATE users SET role = ?, updated_at = ? WHERE username = ?",
+        (role, utc_now(), username),
+    )
 
 
 DEFAULT_USERNAME = "Admin"
+GUEST_USERNAME = "Guest"
 DEFAULT_PASSWORD = "123456"
 
 

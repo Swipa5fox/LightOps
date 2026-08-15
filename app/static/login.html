@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+    <title>登录 · LightOps 轻量运维控制台</title>
+    <link rel="stylesheet" href="/login.css" />
+  </head>
+  <body>
+    <main class="login-shell">
+      <section class="login-card" aria-labelledby="login-title">
+        <div class="login-brand">
+          <div class="login-mark" aria-hidden="true"><span></span></div>
+          <div>
+            <h1 id="login-title">LightOps</h1>
+            <p>轻量运维控制台</p>
+          </div>
+        </div>
+
+        <p class="login-intro">请登录后进入控制台</p>
+
+        <form id="login-form" class="login-form" novalidate>
+          <label class="login-field">
+            <span>账号</span>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              autocomplete="username"
+              autocapitalize="none"
+              spellcheck="false"
+              autofocus
+              required
+            />
+          </label>
+          <label class="login-field">
+            <span>密码</span>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+          </label>
+
+          <p id="login-error" class="login-error" role="alert" hidden></p>
+
+          <button id="login-submit" type="submit" class="login-button">进入控制台</button>
+        </form>
+
+        <p class="login-foot">监控数据仅授权账户可见</p>
+      </section>
+    </main>
+    <script src="/login.js"></script>
+  </body>
+</html>

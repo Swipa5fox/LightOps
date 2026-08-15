@@ -147,7 +147,107 @@ button {
   font-weight: 700;
 }
 
-/* ---- 登录 / 用户管理弹窗 ---- */
+/* ---- 用户菜单（hover 预览：我的账户 / 修改密码 / 退出登录） ---- */
+.user-menu {
+  position: relative;
+}
+
+.user-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-menu-caret {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 8px);
+  right: 0;
+  display: none;
+  width: 210px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-strong);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.user-menu:hover .user-menu-dropdown,
+.user-menu:focus-within .user-menu-dropdown {
+  display: block;
+}
+
+.user-menu-account {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px 10px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.user-menu-account span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.user-menu-account strong {
+  font-size: 13px;
+}
+
+.user-menu-role {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-style: normal;
+  letter-spacing: 0.03em;
+}
+
+.user-menu-role.role-admin {
+  color: var(--teal);
+  border: 1px solid rgba(94, 234, 212, 0.35);
+  background: rgba(94, 234, 212, 0.08);
+}
+
+.user-menu-role.role-guest {
+  color: var(--amber);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.user-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  cursor: pointer;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+}
+
+.user-menu-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.user-menu-item-danger {
+  color: var(--danger);
+}
+
+.user-menu-item-danger:hover {
+  background: rgba(251, 113, 133, 0.12);
+}
+
+/* ---- 修改密码弹窗 ---- */
 .modal-mask {
   position: fixed;
   z-index: 50;

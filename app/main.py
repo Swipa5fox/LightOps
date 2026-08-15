@@ -62,15 +62,35 @@ def operating_system_name() -> str:
 OS_NAME = operating_system_name()
 
 
-def require_token(
+def require_admin_access(
     authorization: Annotated[Optional[str], Header()] = None,
 ) -> None:
+    """管理操作的门禁：持有管理令牌或管理员（admin）用户会话才可通行。
+
+    访客（guest）会话一律 403。管理令牌是全局凭证，无法区分实际使用者；
+    所以"Guest 无管理功能"由本依赖拒绝 guest 会话 + 前端隐藏入口双重保障。
+    """
     expected = f"Bearer {settings.api_token}"
-    if not authorization or not secrets.compare_digest(authorization, expected):
+    if authorization and secrets.compare_digest(authorization, expected):
+        return
+    token = _bearer_token(authorization)
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="valid bearer token required",
+            detail="valid bearer token or admin session required",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    username = db.get_session_username(token)
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="session expired",
+        )
+    user = db.get_user(username)
+    if not user or user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="访客账号无权执行此操作",
         )
 
 
@@ -148,14 +168,16 @@ app = FastAPI(
 def auth_me(
     authorization: Annotated[Optional[str], Header()] = None,
 ) -> dict:
-    """返回当前登录用户；未登录返回 401（前端据此切换登录态）。"""
+    """返回当前登录用户及角色；未登录返回 401（前端据此切换登录态）。"""
     token = _bearer_token(authorization)
     if not token:
         raise HTTPException(status_code=401, detail="not logged in")
     username = db.get_session_username(token)
     if not username:
         raise HTTPException(status_code=401, detail="session expired")
-    return {"authenticated": True, "username": username}
+    user = db.get_user(username)
+    role = str(user.get("role") or "guest") if user else "guest"
+    return {"authenticated": True, "username": username, "role": role}
 
 
 @app.post("/api/login")
@@ -337,14 +359,14 @@ def alerts() -> dict:
     return {"alerts": db.active_alerts()}
 
 
-@app.get("/api/audit", dependencies=[Depends(require_token)])
+@app.get("/api/audit", dependencies=[Depends(require_admin_access)])
 def audit(limit: Annotated[int, Query(ge=1, le=500)] = 100) -> dict:
     return {"entries": db.audit_logs(limit)}
 
 
 @app.post(
     "/api/services/{service}/restart",
-    dependencies=[Depends(require_token)],
+    dependencies=[Depends(require_admin_access)],
 )
 def restart(service: str, request: Request) -> dict:
     remote_addr = request.client.host if request.client else "unknown"
@@ -366,7 +388,7 @@ def restart(service: str, request: Request) -> dict:
     return {"ok": True, "service": service, "detail": detail}
 
 
-@app.post("/api/maintenance/run", dependencies=[Depends(require_token)])
+@app.post("/api/maintenance/run", dependencies=[Depends(require_admin_access)])
 def run_maintenance(request: Request) -> dict:
     remote_addr = request.client.host if request.client else "unknown"
     try:

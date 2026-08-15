@@ -113,12 +113,9 @@
         weatherTimer: null,
         clockTimer: null,
         currentTime: new Date(),
-        showLogin: false,
-        showUserPanel: false,
+        showPasswordModal: false,
         currentUser: "",
-        loginBusy: false,
-        loginError: "",
-        loginForm: { username: "", password: "" },
+        role: "",
         passwordBusy: false,
         passwordError: "",
         passwordSuccess: "",
@@ -129,6 +126,9 @@
     computed: {
       metric: function () {
         return this.summary.metric || {};
+      },
+      isAdmin: function () {
+        return this.role === "admin";
       },
       services: function () {
         return this.summary.services || [];
@@ -279,8 +279,12 @@
         return minutes + " 分";
       }
     },
-      mounted: function () {
+      mounted: async function () {
         migrateLegacyToken();
+        var loggedIn = await this.restoreLogin();
+        if (!loggedIn) {
+          return;
+        }
         this.refresh();
         this.initializeWeather();
         this.refreshTimer = window.setInterval(this.refresh, 30000);
@@ -288,7 +292,6 @@
         this.clockTimer = window.setInterval(function () {
           this.currentTime = new Date();
         }.bind(this), CLOCK_REFRESH_MS);
-        this.restoreLogin();
       },
       beforeUnmount: function () {
         window.clearInterval(this.refreshTimer);
@@ -301,60 +304,41 @@
         return token ? { Authorization: "Bearer " + token } : {};
       },
       restoreLogin: async function () {
+        // 未持有会话一律跳转独立登录页；会话失效同样跳转。
         var session = readSession();
         if (!session) {
-          return;
+          window.location.replace("/login.html");
+          return false;
         }
         try {
           var me = await this.fetchJson("/api/auth/me", {
             headers: this.authHeaders()
           });
           this.currentUser = me.username || "";
+          this.role = me.role === "admin" ? "admin" : "guest";
+          return true;
         } catch (error) {
           writeSession("");
           this.currentUser = "";
+          this.role = "";
+          window.location.replace("/login.html");
+          return false;
         }
       },
-      openUserPanel: function () {
-        if (this.currentUser) {
-          this.passwordError = "";
-          this.passwordSuccess = "";
-          this.passwordForm = { oldPassword: "", newPassword: "", confirmPassword: "" };
-          this.showUserPanel = true;
-        } else {
-          this.showLogin = true;
+      handleUserClick: function () {
+        // 已登录：hover 即可预览账户菜单；未登录：跳转登录页。
+        if (!this.currentUser) {
+          window.location.replace("/login.html");
         }
       },
-      closeLogin: function () {
-        this.showLogin = false;
-        this.loginError = "";
+      openPasswordModal: function () {
+        this.passwordError = "";
+        this.passwordSuccess = "";
+        this.passwordForm = { oldPassword: "", newPassword: "", confirmPassword: "" };
+        this.showPasswordModal = true;
       },
-      closeUserPanel: function () {
-        this.showUserPanel = false;
-      },
-      submitLogin: async function () {
-        var username = (this.loginForm.username || "").trim();
-        var password = this.loginForm.password || "";
-        if (!username || !password) {
-          return;
-        }
-        this.loginBusy = true;
-        this.loginError = "";
-        try {
-          var result = await this.fetchJson("/api/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: username, password: password })
-          });
-          writeSession(result.token || "");
-          this.currentUser = result.username || username;
-          this.showLogin = false;
-          this.loginForm = { username: "", password: "" };
-        } catch (error) {
-          this.loginError = error.message || "登录失败";
-        } finally {
-          this.loginBusy = false;
-        }
+      closePasswordModal: function () {
+        this.showPasswordModal = false;
       },
       logout: async function () {
         this.logoutBusy = true;
@@ -368,8 +352,10 @@
         } finally {
           writeSession("");
           this.currentUser = "";
-          this.showUserPanel = false;
+          this.role = "";
+          this.showPasswordModal = false;
           this.logoutBusy = false;
+          window.location.replace("/login.html");
         }
       },
       submitChangePassword: async function () {
@@ -399,9 +385,14 @@
           });
           this.passwordSuccess = "密码已更新，请重新登录";
           this.passwordForm = { oldPassword: "", newPassword: "", confirmPassword: "" };
-          // 服务端已使旧会话失效，本地立即退出登录态。
+          // 服务端已使旧会话失效，本地立即退出登录态并回到登录页。
           writeSession("");
           this.currentUser = "";
+          this.role = "";
+          this.showPasswordModal = false;
+          window.setTimeout(function () {
+            window.location.replace("/login.html");
+          }, 600);
         } catch (error) {
           this.passwordError = error.message || "密码修改失败";
         } finally {
