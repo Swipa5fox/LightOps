@@ -73,14 +73,14 @@ LightOps 是面向小型 Linux 云服务器的轻量监控与受限运维面板�
 bash deploy/preflight.sh
 ~~~
 
-只有输出 preflight=PASS 才继续。默认配置可直接使用；需要改端口、域名显示或服务选择时：
+只有当输出为： preflight=PASS 时才继续。此系统默认配置可直接使用；若需要改端口、域名显示或服务选择时，修改下面配置：
 
 ~~~bash
 cp config.env.example config.env
 vi config.env
 ~~~
 
-然后以 root 执行：
+然后以 root 权限执行：
 
 ~~~bash
 bash deploy/install.sh
