@@ -98,6 +98,36 @@ with TestClient(app) as client:
     )
     assert audit.status_code == 200, audit.text
 
+    # 角色权限：Guest 只读，管理操作一律 403；Admin 会话拥有管理权限。
+    guest_login = client.post(
+        "/api/login", json={"username": "Guest", "password": "123456"}
+    )
+    assert guest_login.status_code == 200, guest_login.text
+    guest_headers = {"Authorization": "Bearer " + guest_login.json()["token"]}
+    guest_me = client.get("/api/auth/me", headers=guest_headers)
+    assert guest_me.status_code == 200
+    assert guest_me.json()["role"] == "guest"
+    assert client.post(
+        "/api/services/nginx/restart", headers=guest_headers
+    ).status_code == 403
+    assert client.post(
+        "/api/maintenance/run", headers=guest_headers
+    ).status_code == 403
+    assert client.get("/api/audit", headers=guest_headers).status_code == 403
+
+    admin_login = client.post(
+        "/api/login", json={"username": "Admin", "password": "123456"}
+    )
+    assert admin_login.status_code == 200, admin_login.text
+    admin_headers = {"Authorization": "Bearer " + admin_login.json()["token"]}
+    admin_me = client.get("/api/auth/me", headers=admin_headers)
+    assert admin_me.status_code == 200
+    assert admin_me.json()["role"] == "admin"
+    assert client.get("/api/audit", headers=admin_headers).status_code == 200
+    assert client.post(
+        "/api/services/not-allowed/restart", headers=admin_headers
+    ).status_code == 403  # 白名单外服务仍被拒
+
     rejected = client.post("/api/services/not-allowed/restart", headers=headers)
     assert rejected.status_code == 403, rejected.text
 

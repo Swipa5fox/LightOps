@@ -72,6 +72,8 @@ index = (STATIC / "index.html").read_text(encoding="utf-8")
 style = (STATIC / "style.css").read_text(encoding="utf-8")
 script = (STATIC / "app.js").read_text(encoding="utf-8")
 render = (STATIC / "render.js").read_text(encoding="utf-8")
+login_html = (STATIC / "login.html").read_text(encoding="utf-8")
+login_script = (STATIC / "login.js").read_text(encoding="utf-8")
 version_source = (ROOT / "app" / "__init__.py").read_text(encoding="utf-8")
 version_match = re.search(r'^__version__\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"$', version_source, re.MULTILINE)
 assert version_match, "application version source is missing"
@@ -100,6 +102,25 @@ for reference in parser.references:
     if local_path is not None:
         assert local_path.is_file(), f"missing frontend resource: {reference}"
 
+login_parser = FrontendParser()
+login_parser.feed(login_html)
+assert len(login_parser.ids) == len(set(login_parser.ids)), "login HTML ids must be unique"
+assert not login_parser.inline_script, "login inline scripts violate the production CSP"
+assert not login_parser.inline_style, "login inline style blocks violate the production CSP"
+assert not login_parser.inline_event_handler, "login inline event handlers violate the production CSP"
+assert not login_parser.inline_style_attribute, "login inline style attributes violate the production CSP"
+for reference in login_parser.references:
+    parsed = urlsplit(reference)
+    assert not parsed.scheme and not parsed.netloc, f"external login resource: {reference}"
+    local_path = local_file_for(reference)
+    if local_path is not None:
+        assert local_path.is_file(), f"missing login resource: {reference}"
+assert "/api/login" in login_script
+assert "/api/auth/me" in login_script
+assert "SESSION_KEY" in login_script and "lightops_session" in login_script
+assert "placeholder" not in login_html, "login inputs must not show placeholder hints"
+assert "window.location.replace" in login_script, "login flow must redirect after auth"
+
 assert (STATIC / "vendor" / "vue.runtime.global.prod.js").is_file()
 assert not (STATIC / "vendor" / "echarts.min.js").exists(), "unused ECharts must not return"
 
@@ -116,6 +137,15 @@ for label, pattern in dangerous_patterns.items():
 
 assert "localStorage.setItem" not in script, "tokens must not persist in localStorage"
 assert "sessionStorage.setItem" in script, "session-only token storage is required"
+assert 'class="user-menu"' in index, "user menu dropdown must exist in the topbar"
+assert "openPasswordModal" in script and "closePasswordModal" in script
+assert 'window.location.replace("/login.html")' in script, "unauthenticated visits must redirect to the login page"
+assert "showLogin" not in index and "showUserPanel" not in index, "login/user-panel must not be modals anymore"
+assert "openUserPanel" not in script and "submitLogin" not in script, "old modal login code must be removed"
+assert "isAdmin" in script and 'this.role === "admin"' in script, "admin role gating is required"
+assert 'v-if="isAdmin"' in index, "admin-only controls must be hidden for guest users"
+assert "user-menu-role" in index and "role-guest" in index, "user menu must expose the account role badge"
+assert 'me.role === "admin" ? "admin" : "guest"' in script, "auth/me role must be normalized in the client"
 assert "REQUEST_TIMEOUT_MS" in script and "AbortController" in script
 assert "handleAuthError" in script and "error.status !== 401" in script
 assert "refreshRequested" in script, "range changes during refresh must be replayed"

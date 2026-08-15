@@ -74,6 +74,9 @@ validate_release_assets() {
     for release_asset in \
         requirements.txt \
         app/static/index.html \
+        app/static/login.html \
+        app/static/login.css \
+        app/static/login.js \
         app/static/style.css \
         app/static/app.js \
         app/static/render.js \
