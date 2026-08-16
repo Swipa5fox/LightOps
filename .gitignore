@@ -8,3 +8,4 @@ __pycache__/
 .npm-cache/
 tools/node_modules/
 *.tar.gz
+releases/
