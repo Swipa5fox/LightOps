@@ -100,9 +100,9 @@ jobs:
 
       - name: 构建发布包并输出 SHA-256
         run: |
-          python tools/build-release.py
+          python tools/build-release.py --output releases/lightops.tar.gz
           echo "--- 发布包 SHA-256 ---"
-          sha256sum releases/LightOps-*.tar.gz
+          sha256sum releases/lightops.tar.gz
 
   fixture:
     name: 夹具测试 / ${{ matrix.fixture }}
