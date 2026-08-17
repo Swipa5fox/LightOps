@@ -1,6 +1,6 @@
 # LightOps
 
-![version](https://img.shields.io/badge/version-0.1.3-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-0.1.4-blue?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-Linux-lightgrey?style=flat-square&logo=linux&logoColor=black)
 ![python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat-square&logo=python&logoColor=white)
 ![fastapi](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
@@ -40,6 +40,7 @@ LightOps 是面向小型 Linux 云服务器的轻量监控与受限运维面板�
 
 - 严格 CSP（script-src 'self'，无 unsafe-eval）、Permissions-Policy、隐藏 Nginx 版本号；
 - 自定义 404/500 错误页，静态资源 gzip 压缩；
+- 日间/夜间主题一键切换：顶栏太阳/月亮按钮带动画切换，偏好写入 localStorage 自动记忆，首次访问跟随系统偏好，登录页同步；
 - 键盘焦点、状态播报、减少动画偏好与趋势文本摘要等无障碍支持；
 - 前端所有请求 10 秒超时，切换趋势范围时不会出现旧请求覆盖新数据。
 
@@ -56,7 +57,7 @@ LightOps 是面向小型 Linux 云服务器的轻量监控与受限运维面板�
 
 - **零构建发布**：Vue 3 运行时 + `@vue/compiler-dom` 离线预编译的 `render.js`（由 `tools/generate-render.mjs` 从 index.html 生成），发布包不含 CDN 依赖、不含图表库，趋势曲线用原生 SVG 绘制；
 - **登录页独立**：`login.html` 使用原生 JavaScript（无 Vue），与面板完全分离，聚焦认证单一职责；
-- **状态管理**：会话与天气偏好存 sessionStorage（不落 localStorage），管理令牌与登录会话分离。
+- **状态管理**：会话与天气偏好存 sessionStorage，管理令牌与登录会话分离；主题偏好由独立 `theme.js` 集中读写 localStorage（`lightops_theme`），`app.js` 不触碰 localStorage，面板与登录页共享同一套偏好。
 
 ### 部署
 

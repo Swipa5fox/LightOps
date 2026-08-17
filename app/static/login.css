@@ -2,12 +2,35 @@
 :root {
   color-scheme: dark;
   --bg: #04090f;
+  --bg-image:
+    radial-gradient(circle at 50% -20%, rgba(30, 184, 166, 0.22), transparent 34rem),
+    radial-gradient(circle at 85% 90%, rgba(91, 54, 183, 0.18), transparent 28rem),
+    linear-gradient(180deg, #060d15 0%, #04090f 100%);
   --panel: rgba(13, 24, 37, 0.9);
   --border: rgba(137, 167, 201, 0.16);
   --text: #e7eef7;
   --muted: #8292a8;
   --teal: #5eead4;
   --danger: #fb7185;
+  --on-accent: #06201d;
+  --input-bg: rgba(255, 255, 255, 0.035);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eef3f9;
+  --bg-image:
+    radial-gradient(circle at 50% -20%, rgba(251, 191, 36, 0.32), transparent 32rem),
+    radial-gradient(circle at 85% 90%, rgba(125, 211, 252, 0.4), transparent 30rem),
+    linear-gradient(180deg, #f8fafc 0%, #e9f0f7 100%);
+  --panel: rgba(255, 255, 255, 0.92);
+  --border: rgba(15, 42, 74, 0.12);
+  --text: #16283c;
+  --muted: #5b6b80;
+  --teal: #0e9384;
+  --danger: #dc2626;
+  --on-accent: #ffffff;
+  --input-bg: #ffffff;
 }
 
 * {
@@ -23,10 +46,9 @@ body {
   min-height: 100vh;
   margin: 0;
   color: var(--text);
-  background:
-    radial-gradient(circle at 50% -20%, rgba(30, 184, 166, 0.22), transparent 34rem),
-    radial-gradient(circle at 85% 90%, rgba(91, 54, 183, 0.18), transparent 28rem),
-    linear-gradient(180deg, #060d15 0%, #04090f 100%);
+  background-color: var(--bg);
+  background-image: var(--bg-image);
+  transition: background-color 0.4s ease, color 0.4s ease;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Microsoft YaHei", sans-serif;
@@ -54,6 +76,7 @@ button {
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(12px);
   animation: login-rise 0.45s ease-out both;
+  transition: background-color 0.35s ease, border-color 0.35s ease;
 }
 
 @keyframes login-rise {
@@ -134,10 +157,10 @@ button {
   padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--input-bg);
   color: var(--text);
   font-size: 14px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.35s ease;
 }
 
 .login-field input:focus {
@@ -159,7 +182,7 @@ button {
   border: 0;
   border-radius: 9px;
   background: var(--teal);
-  color: #06201d;
+  color: var(--on-accent);
   font-size: 14px;
   font-weight: 720;
   transition: filter 0.15s ease, transform 0.05s ease;
