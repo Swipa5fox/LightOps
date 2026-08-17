@@ -77,6 +77,7 @@ validate_release_assets() {
         app/static/login.html \
         app/static/login.css \
         app/static/login.js \
+        app/static/theme.js \
         app/static/style.css \
         app/static/app.js \
         app/static/render.js \

@@ -12,8 +12,9 @@ const outputPath = resolve(projectRoot, "app/static/render.js");
 const html = await readFile(htmlPath, "utf8");
 const opening = '<div id="app" v-cloak>';
 const start = html.indexOf(opening);
-const firstScript = html.search(/\r?\n    <script/);
-const end = firstScript >= 0 ? html.lastIndexOf("</div>", firstScript) : -1;
+// 模板结束于 body 底部最后一个外部脚本之前（head 内可能已有同步脚本如 /theme.js）。
+const lastScript = html.lastIndexOf('<script src=');
+const end = lastScript >= 0 ? html.lastIndexOf("</div>", lastScript) : -1;
 
 if (start < 0 || end < 0 || end <= start) {
   throw new Error("Unable to locate the LightOps Vue template in index.html");

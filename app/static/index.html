@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
     <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+    <script src="/theme.js"></script>
     <title>LightOps · 轻量运维控制台</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
@@ -19,6 +19,22 @@
           </div>
         </div>
         <div class="header-actions">
+          <button
+            type="button"
+            class="theme-toggle"
+            :class="{ 'is-light': theme === 'light' }"
+            :aria-label="themeLabel"
+            :title="themeLabel"
+            @click="toggleTheme"
+          >
+            <svg class="theme-toggle-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="4.2"></circle>
+              <path d="M12 2.6v2.5M12 18.9v2.5M2.6 12h2.5M18.9 12h2.5M5.4 5.4l1.8 1.8M16.8 16.8l1.8 1.8M18.6 5.4l-1.8 1.8M7.2 16.8l-1.8 1.8"></path>
+            </svg>
+            <svg class="theme-toggle-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M20.3 14.4A8.5 8.5 0 0 1 9.6 3.7a8.5 8.5 0 1 0 10.7 10.7Z"></path>
+            </svg>
+          </button>
           <span class="live-dot" aria-hidden="true"></span>
           <span class="muted" aria-live="polite">最后更新 {{ updatedAt || "等待数据" }}</span>
           <div class="user-menu">

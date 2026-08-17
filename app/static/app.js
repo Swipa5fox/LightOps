@@ -120,7 +120,8 @@
         passwordError: "",
         passwordSuccess: "",
         passwordForm: { oldPassword: "", newPassword: "", confirmPassword: "" },
-        logoutBusy: false
+        logoutBusy: false,
+        theme: "dark"
       };
     },
     computed: {
@@ -129,6 +130,9 @@
       },
       isAdmin: function () {
         return this.role === "admin";
+      },
+      themeLabel: function () {
+        return this.theme === "light" ? "切换到夜间模式" : "切换到日间模式";
       },
       services: function () {
         return this.summary.services || [];
@@ -280,6 +284,36 @@
       }
     },
       mounted: async function () {
+        var themeApi = window.LightOpsTheme || {};
+        var savedTheme = themeApi.read ? themeApi.read() : "";
+        var initialTheme =
+          savedTheme === "light" || savedTheme === "dark"
+            ? savedTheme
+            : themeApi.system ? themeApi.system() : "dark";
+        this.theme = initialTheme;
+        if (themeApi.apply) {
+          themeApi.apply(initialTheme);
+        }
+        // 用户未手动选过主题时，跟随系统日间/夜间偏好。
+        var themeMedia =
+          window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+        if (themeMedia && !savedTheme) {
+          var followSystemTheme = function () {
+            if (themeApi.read && themeApi.read()) {
+              return;
+            }
+            var next = themeMedia.matches ? "light" : "dark";
+            this.theme = next;
+            if (themeApi.apply) {
+              themeApi.apply(next);
+            }
+          }.bind(this);
+          if (themeMedia.addEventListener) {
+            themeMedia.addEventListener("change", followSystemTheme);
+          } else if (themeMedia.addListener) {
+            themeMedia.addListener(followSystemTheme);
+          }
+        }
         migrateLegacyToken();
         var loggedIn = await this.restoreLogin();
         if (!loggedIn) {
@@ -329,6 +363,17 @@
         // 已登录：hover 即可预览账户菜单；未登录：跳转登录页。
         if (!this.currentUser) {
           window.location.replace("/login.html");
+        }
+      },
+      toggleTheme: function () {
+        var next = this.theme === "light" ? "dark" : "light";
+        this.theme = next;
+        var themeApi = window.LightOpsTheme || {};
+        if (themeApi.apply) {
+          themeApi.apply(next);
+        }
+        if (themeApi.save) {
+          themeApi.save(next);
         }
       },
       openPasswordModal: function () {
