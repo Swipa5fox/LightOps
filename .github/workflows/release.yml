@@ -58,7 +58,7 @@ jobs:
       - name: 提取当前版本说明
         shell: bash
         run: |
-          awk '/^## 历史版本/{exit} {print}' CHANGELOG.md > release-notes.md
+          awk 'BEGIN{n=0} /^# 🎉 版本/{n++} n==1{print} n==2{exit}' CHANGELOG.md > release-notes.md
           test -s release-notes.md
 
       - name: 创建正式 Release 并上传文件
