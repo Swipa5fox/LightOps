@@ -5,6 +5,7 @@
   var TOKEN_KEY = "lightops_api_token";
   var SESSION_KEY = "lightops_session";
   var WEATHER_PLACE_KEY = "lightops_weather_place";
+  var DEFAULT_WEATHER_PLACE = "广州-黄埔区";
   var REQUEST_TIMEOUT_MS = 10000;
   var WEATHER_REFRESH_MS = 30 * 60 * 1000;
   var CLOCK_REFRESH_MS = 60 * 1000;
@@ -445,10 +446,8 @@
         }
       },
       initializeWeather: function () {
-        this.weatherPlace = readWeatherPlace();
-        if (this.weatherPlace) {
-          this.refreshWeather();
-        }
+        this.weatherPlace = readWeatherPlace() || DEFAULT_WEATHER_PLACE;
+        this.refreshWeather();
       },
       pickDistrict: async function (candidate) {
         if (!candidate || this.weatherLoading) {
