@@ -170,7 +170,7 @@
             <div class="hero-status-row">
               <span
                 class="status-badge"
-                :class="{ healthy: updatedAt && !error, pending: !updatedAt && !error }"
+                :class="{ error: !!error, pending: !updatedAt && !error }"
                 role="status"
                 aria-live="polite"
               >
@@ -282,7 +282,7 @@
           <article class="metric-card">
             <div class="metric-card-head">
               <div class="metric-label">活动告警</div>
-              <span class="alert-summary" :class="{ clear: alerts.length === 0 }">
+              <span class="alert-summary" :class="{ error: alerts.length > 0 }">
                 {{ alerts.length ? "需要关注" : "当前无异常" }}
               </span>
             </div>

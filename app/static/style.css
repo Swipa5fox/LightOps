@@ -918,19 +918,20 @@ h1 {
   content: "·";
 }
 
+/* 默认即为健康（绿色），避免"无异常却显示红色"；只有 .error 才显式覆盖为红色。 */
 .status-badge {
   padding: 7px 11px;
-  border: 1px solid rgba(251, 113, 133, 0.25);
+  border: 1px solid rgba(94, 234, 212, 0.25);
   border-radius: 99px;
-  color: var(--danger);
-  background: rgba(251, 113, 133, 0.08);
+  color: var(--teal);
+  background: rgba(94, 234, 212, 0.07);
   font-size: 12px;
 }
 
-.status-badge.healthy {
-  border-color: rgba(94, 234, 212, 0.25);
-  color: var(--teal);
-  background: rgba(94, 234, 212, 0.07);
+.status-badge.error {
+  border-color: rgba(251, 113, 133, 0.25);
+  color: var(--danger);
+  background: rgba(251, 113, 133, 0.08);
 }
 
 .status-badge.pending {
@@ -1131,14 +1132,14 @@ h1 {
   align-items: center;
   padding: 3px 8px;
   border-radius: 5px;
-  color: #fda4af;
-  background: rgba(251, 113, 133, 0.08);
+  color: var(--teal);
+  background: rgba(94, 234, 212, 0.07);
   font-size: 11px;
 }
 
-.alert-summary.clear {
-  color: var(--teal);
-  background: rgba(94, 234, 212, 0.07);
+.alert-summary.error {
+  color: #fda4af;
+  background: rgba(251, 113, 133, 0.08);
 }
 
 .panel {
@@ -1843,6 +1844,18 @@ footer {
   background: rgba(220, 38, 38, 0.07);
 }
 
+:root[data-theme="light"] .status-badge {
+  border-color: rgba(14, 147, 132, 0.25);
+  color: var(--teal);
+  background: rgba(14, 147, 132, 0.07);
+}
+
+:root[data-theme="light"] .status-badge.error {
+  border-color: rgba(220, 38, 38, 0.28);
+  color: var(--danger);
+  background: rgba(220, 38, 38, 0.07);
+}
+
 :root[data-theme="light"] .metric-state.elevated {
   border-color: rgba(180, 83, 9, 0.24);
   color: var(--amber);
@@ -1856,6 +1869,11 @@ footer {
 }
 
 :root[data-theme="light"] .alert-summary {
+  color: var(--teal);
+  background: rgba(14, 147, 132, 0.07);
+}
+
+:root[data-theme="light"] .alert-summary.error {
   color: var(--danger);
   background: rgba(220, 38, 38, 0.07);
 }

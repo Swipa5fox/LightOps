@@ -460,7 +460,7 @@ return function render(_ctx, _cache) {
         _createElementVNode("div", _hoisted_35, [
           _createElementVNode("div", _hoisted_36, [
             _createElementVNode("span", {
-              class: _normalizeClass(["status-badge", { healthy: _ctx.updatedAt && !_ctx.error, pending: !_ctx.updatedAt && !_ctx.error }]),
+              class: _normalizeClass(["status-badge", { error: !!_ctx.error, pending: !_ctx.updatedAt && !_ctx.error }]),
               role: "status",
               "aria-live": "polite"
             }, _toDisplayString(_ctx.error ? "数据异常" : (_ctx.updatedAt ? "系统运行中" : "正在连接")), 3 /* TEXT, CLASS */),
@@ -608,7 +608,7 @@ return function render(_ctx, _cache) {
           _createElementVNode("div", _hoisted_66, [
             _cache[40] || (_cache[40] = _createElementVNode("div", { class: "metric-label" }, "活动告警", -1 /* CACHED */)),
             _createElementVNode("span", {
-              class: _normalizeClass(["alert-summary", { clear: _ctx.alerts.length === 0 }])
+              class: _normalizeClass(["alert-summary", { error: _ctx.alerts.length > 0 }])
             }, _toDisplayString(_ctx.alerts.length ? "需要关注" : "当前无异常"), 3 /* TEXT, CLASS */)
           ]),
           _createElementVNode("div", _hoisted_67, [
