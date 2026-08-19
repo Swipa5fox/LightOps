@@ -465,7 +465,19 @@
         </section>
 
         <footer>
-          <span class="footer-brand">LightOps '{{ summary.version || "v?.?" }}'.2026</span>
+          <a
+            class="footer-brand"
+            href="https://github.com/Swipa5fox/LightOps"
+            target="_blank"
+            rel="noopener noreferrer"
+          >LightOps</a>
+          <a
+            class="footer-version"
+            :href="versionHref"
+            target="_blank"
+            rel="noopener noreferrer"
+          >{{ summary.version || "v?.?" }}</a>
+          <span class="footer-copyright"> · © {{ currentYear }}</span>
         </footer>
       </main>
     </div>

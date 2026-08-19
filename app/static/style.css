@@ -1556,19 +1556,22 @@ h2 {
 footer {
   display: flex;
   justify-content: center;
+  gap: 6px;
   padding: 28px 2px 0;
   color: #4f6075;
   font-size: 11px;
 }
 
-footer .footer-brand {
+footer .footer-brand,
+footer .footer-version {
   color: inherit;
   text-decoration: none;
   letter-spacing: 0.4px;
   transition: color 0.2s ease;
 }
 
-footer .footer-brand:hover {
+footer .footer-brand:hover,
+footer .footer-version:hover {
   color: var(--accent, #2563eb);
   text-decoration: underline;
 }

@@ -200,7 +200,13 @@ const _hoisted_100 = {
   key: 0,
   class: "empty-state success"
 }
-const _hoisted_101 = { class: "footer-brand" }
+const _hoisted_101 = {
+  class: "footer-brand",
+  href: "https://github.com/Swipa5fox/LightOps",
+  target: "_blank",
+  rel: "noopener noreferrer"
+}
+const _hoisted_102 = { class: "footer-copyright" }
 
 return function render(_ctx, _cache) {
   return (_openBlock(), _createElementBlock(_Fragment, null, [
@@ -857,7 +863,14 @@ return function render(_ctx, _cache) {
         ])
       ]),
       _createElementVNode("footer", null, [
-        _createElementVNode("span", _hoisted_101, "LightOps '" + _toDisplayString(_ctx.summary.version || "v?.?") + "'.2026", 1 /* TEXT */)
+        _createElementVNode("a", _hoisted_101, "LightOps", -1 /* CACHED */),
+        _createElementVNode("a", {
+          class: "footer-version",
+          href: _ctx.versionHref,
+          target: "_blank",
+          rel: "noopener noreferrer"
+        }, _toDisplayString(_ctx.summary.version || "v?.?"), 9 /* TEXT, PROPS */),
+        _createElementVNode("span", _hoisted_102, " · © " + _toDisplayString(_ctx.currentYear), 1 /* TEXT */)
       ])
     ])
   ], 64 /* STABLE_FRAGMENT */))

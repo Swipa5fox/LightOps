@@ -135,6 +135,12 @@
       themeLabel: function () {
         return this.theme === "light" ? "切换到夜间模式" : "切换到日间模式";
       },
+      versionHref: function () {
+        return "https://github.com/Swipa5fox/LightOps/releases";
+      },
+      currentYear: function () {
+        return new Date().getFullYear();
+      },
       services: function () {
         return this.summary.services || [];
       },

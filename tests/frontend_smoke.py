@@ -29,9 +29,12 @@ class FrontendParser(HTMLParser):
         values = dict(attrs)
         if element_id := values.get("id"):
             self.ids.append(element_id)
-        for name in ("src", "href"):
-            if reference := values.get(name):
-                self.references.append(reference)
+        # <a href> is a navigation link, not a subresource: it is exempt from
+        # the CSP default-src check and may point at an external site.
+        if tag != "a":
+            for name in ("src", "href"):
+                if reference := values.get(name):
+                    self.references.append(reference)
         if any(name.lower().startswith("on") for name, _ in attrs):
             self.inline_event_handler = True
         if "style" in values:
