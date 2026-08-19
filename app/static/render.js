@@ -200,6 +200,7 @@ const _hoisted_100 = {
   key: 0,
   class: "empty-state success"
 }
+const _hoisted_101 = { class: "footer-brand" }
 
 return function render(_ctx, _cache) {
   return (_openBlock(), _createElementBlock(_Fragment, null, [
@@ -855,10 +856,9 @@ return function render(_ctx, _cache) {
           ])
         ])
       ]),
-      _cache[54] || (_cache[54] = _createElementVNode("footer", null, [
-        _createElementVNode("span", null, "LightOps · FastAPI / Vue 3 / SVG"),
-        _createElementVNode("span", null, "指标每 60 秒采集 · 保留 7 天")
-      ], -1 /* CACHED */))
+      _createElementVNode("footer", null, [
+        _createElementVNode("span", _hoisted_101, "LightOps '" + _toDisplayString(_ctx.summary.version || "v?.?") + "'.2026", 1 /* TEXT */)
+      ])
     ])
   ], 64 /* STABLE_FRAGMENT */))
 }
