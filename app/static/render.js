@@ -863,13 +863,7 @@ return function render(_ctx, _cache) {
         ])
       ]),
       _createElementVNode("footer", null, [
-        _createElementVNode("a", _hoisted_101, "LightOps", -1 /* CACHED */),
-        _createElementVNode("a", {
-          class: "footer-version",
-          href: _ctx.versionHref,
-          target: "_blank",
-          rel: "noopener noreferrer"
-        }, _toDisplayString(_ctx.summary.version || "v?.?"), 9 /* TEXT, PROPS */),
+        _createElementVNode("a", _hoisted_101, "LightOps " + _toDisplayString(_ctx.summary.version || "?.?"), 1 /* TEXT */),
         _createElementVNode("span", _hoisted_102, " · © " + _toDisplayString(_ctx.currentYear), 1 /* TEXT */)
       ])
     ])

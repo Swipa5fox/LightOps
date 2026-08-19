@@ -1562,16 +1562,14 @@ footer {
   font-size: 11px;
 }
 
-footer .footer-brand,
-footer .footer-version {
+footer .footer-brand {
   color: inherit;
   text-decoration: none;
   letter-spacing: 0.4px;
   transition: color 0.2s ease;
 }
 
-footer .footer-brand:hover,
-footer .footer-version:hover {
+footer .footer-brand:hover {
   color: var(--accent, #2563eb);
   text-decoration: underline;
 }
