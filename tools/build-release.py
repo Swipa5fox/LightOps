@@ -36,7 +36,7 @@ REQUIRED_FILES = (
 
 def release_version() -> str:
     match = re.search(
-        r'^__version__\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"$',
+        r'^__version__\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?)"$',
         VERSION_FILE.read_text(encoding="utf-8"),
         flags=re.MULTILINE,
     )

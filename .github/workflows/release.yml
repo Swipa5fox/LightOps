@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '版本号（例如 1.4.1，须与 app/__init__.py 的 __version__ 一致）'
+        description: '版本号（例如 0.1.4.1，须与 app/__init__.py 的 __version__ 一致）'
         required: true
 
 permissions:
