@@ -78,7 +78,7 @@ render = (STATIC / "render.js").read_text(encoding="utf-8")
 login_html = (STATIC / "login.html").read_text(encoding="utf-8")
 login_script = (STATIC / "login.js").read_text(encoding="utf-8")
 version_source = (ROOT / "app" / "__init__.py").read_text(encoding="utf-8")
-version_match = re.search(r'^__version__\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"$', version_source, re.MULTILINE)
+version_match = re.search(r'^__version__\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?)"$', version_source, re.MULTILINE)
 assert version_match, "application version source is missing"
 current_version = version_match.group(1)
 nginx = (ROOT / "deploy" / "lightops.nginx.conf").read_text(encoding="utf-8")
