@@ -13,9 +13,8 @@ from .settings import settings
 
 
 _DISTRICTS: dict[str, list[tuple[str, float, float]]] = {
-    # Curated district-level data for the cities surfaced in the UI. Open-Meteo
-    # Geocoding only resolves to the city level for Chinese place names, so when
-    # the user picks one of these cities we expose its districts as well.
+    # 为 UI 中展示的城市精选的区级数据。Open-Meteo 地理编码对中文地名
+    # 只能解析到市级，因此当用户选择这些城市之一时，我们也会列出其下辖区。
     "北京": [
         ("东城区", 39.928, 116.418),
         ("西城区", 39.915, 116.366),
@@ -240,8 +239,8 @@ def _normalize(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def current_weather(latitude: float, longitude: float) -> dict[str, Any]:
-    # Round to roughly 1 km before caching or sending upstream. This is sufficient
-    # for local weather while avoiding storage or transmission of precise location.
+    # 在缓存或向上游发送前，将坐标四舍五入到约 1 公里。这对本地天气足够，
+    # 同时避免存储或传输精确位置。
     latitude = round(latitude, 2)
     longitude = round(longitude, 2)
     key = (latitude, longitude)
@@ -255,7 +254,7 @@ def current_weather(latitude: float, longitude: float) -> dict[str, Any]:
     result = _normalize(_fetch_remote(latitude, longitude))
     with _CACHE_LOCK:
         _CACHE[key] = (now, result)
-        # Keep this tiny on a lightweight server even if many locations request it.
+        # 即使很多地点请求，也保持缓存小（面向轻量服务器）。
         if len(_CACHE) > 64:
             oldest = min(_CACHE, key=lambda item: _CACHE[item][0])
             _CACHE.pop(oldest, None)
@@ -267,9 +266,9 @@ def _format_label(item: dict[str, Any]) -> str:
     admin3 = str(item.get("admin3") or "").strip()
     admin2 = str(item.get("admin2") or "").strip()
     admin1 = str(item.get("admin1") or "").strip()
-    # District-level: e.g. "广州-天河区"; otherwise fall back to admin chain.
-    # Skip an admin level that is just the same city with a suffix (e.g. "苏州市"
-    # beside name "苏州") to avoid redundant labels like "苏州-苏州市".
+    # 区级：例如 "广州-天河区"；否则回退到行政区划链。
+    # 跳过与城市同名的行政级别（例如在名称 "苏州" 旁的 "苏州市"），
+    # 以避免 "苏州-苏州市" 这类冗余标签。
     if admin3 and admin3 != name and _strip_city_suffix(admin3) != name:
         return f"{name}-{admin3}"
     if admin2 and admin2 != name and _strip_city_suffix(admin2) != name:
@@ -280,10 +279,10 @@ def _format_label(item: dict[str, Any]) -> str:
 
 
 def _strip_city_suffix(term: str) -> str:
-    """Normalize administrative suffixes so "广州市" matches "广州".
+    """规范化行政后缀，使 "广州市" 能匹配 "广州"。
 
-    Strips trailing 市 / 地区 / 自治州 / 盟. District names ending in 区 / 县 are
-    left untouched so they still match the curated district table.
+    去除末尾的 市 / 地区 / 自治州 / 盟。以 区 / 县 结尾的区名保持不变，
+    这样它们仍能与精选的区级表匹配。
     """
     return re.sub(r"(市|地区|自治州|盟)$", "", (term or "").strip())
 
@@ -311,30 +310,30 @@ def _district_only_candidates(district: str) -> list[dict[str, Any]]:
 
 
 def _district_candidates(name: str) -> list[dict[str, Any]] | None:
-    """Resolve a free-text place query against the curated city/district table.
+    """根据精选的城市/区级表解析自由文本的地名查询。
 
-    Accepts all of these forms for a curated city (e.g. 广州):
-      * city name:            "广州"
-      * city with suffix:     "广州市"
-      * district name:        "海珠区"
-      * "city-district":       "广州-海珠区" / "广州市-海珠区"
-      * "city-district" short: "广州-海珠" (partial district match)
-    Returns None when the query does not match any curated entry, so the caller
-    can fall back to Open-Meteo Geocoding.
+    对于精选城市（例如 广州），支持以下所有形式：
+      * 城市名称：            "广州"
+      * 带后缀的城市名：      "广州市"
+      * 区名：                "海珠区"
+      * "城市-区"：           "广州-海珠区" / "广州市-海珠区"
+      * "城市-区" 简写：      "广州-海珠"（部分区名匹配）
+    当查询未命中任何精选条目时返回 None，以便调用方
+    回退到 Open-Meteo 地理编码。
     """
     cleaned = (name or "").strip()
     if not cleaned:
         return None
-    # Exact city name or exact district name.
+    # 精确的城市名称或精确的区名。
     if cleaned in _DISTRICTS:
         return _city_district_candidates(cleaned)
     if cleaned in _DISTRICT_INDEX:
         return _district_only_candidates(cleaned)
-    # City name with an administrative suffix, e.g. "广州市" -> "广州".
+    # 带行政后缀的城市名，例如 "广州市" -> "广州"。
     stripped = _strip_city_suffix(cleaned)
     if stripped in _DISTRICTS:
         return _city_district_candidates(stripped)
-    # Combined "city-district" form (with optional 市 suffix on the city part).
+    # "城市-区" 组合形式（城市部分可带可选的 市 后缀）。
     if "-" in cleaned:
         city_term, _, district_term = cleaned.partition("-")
         city_term = _strip_city_suffix(city_term)
@@ -347,7 +346,7 @@ def _district_candidates(name: str) -> list[dict[str, Any]] | None:
                 )
                 if exact:
                     return [_make_district_candidate(city_term, exact)]
-                # Partial district match, e.g. "广州-海珠" -> 海珠区.
+                # 部分区名匹配，例如 "广州-海珠" -> 海珠区。
                 partial = next(
                     (
                         d
@@ -358,14 +357,14 @@ def _district_candidates(name: str) -> list[dict[str, Any]] | None:
                 )
                 if partial:
                     return [_make_district_candidate(city_term, partial)]
-                # Unknown district under a known city: surface all so the UI can refine.
+                # 已知城市下未识别的区：全部列出，以便 UI 细化。
                 return _city_district_candidates(city_term)
             return _city_district_candidates(city_term)
     return None
 
 
 def _open_meteo_geocode(name: str, count: int) -> list[dict[str, Any]]:
-    """Call Open-Meteo Geocoding for a place name and normalize the results."""
+    """对地名调用 Open-Meteo 地理编码，并规范化返回结果。"""
     query = urlencode(
         {
             "name": name,
@@ -403,19 +402,18 @@ def _open_meteo_geocode(name: str, count: int) -> list[dict[str, Any]]:
 
 
 def geocode_places(name: str, count: int = 10) -> list[dict[str, Any]]:
-    """Resolve a free-text place name to one or more candidate locations.
+    """将自由文本的地名解析为一个或多个候选位置。
 
-    Each candidate contains ``label`` (human-readable, e.g. "广州-天河区"),
-    ``latitude`` and ``longitude``. Returns an empty list when nothing matches.
-    Curated cities/districts are served from a local table so the UI can refine
-    to the district level (Open-Meteo only resolves to the city level for
-    Chinese place names).
+    每个候选包含 ``label``（例如 "广州-天河区"）、
+    ``latitude`` 和 ``longitude``。无匹配时返回空列表。
+    精选的城市/区来自本地表，因此 UI 可以细化到区级
+    （Open-Meteo 对中文地名只能解析到市级）。
     """
     curated = _district_candidates(name)
     if curated is not None:
         return curated
-    # Open-Meteo expects bare city names: "苏州市" fails but "苏州" works, so strip
-    # the administrative suffix. Retry with the original string if that yields nothing.
+    # Open-Meteo 期望裸城市名："苏州市" 会失败但 "苏州" 可以，因此去除
+    # 行政后缀。若去除后无结果，则使用原始字符串重试。
     stripped = _strip_city_suffix(name)
     if stripped and stripped != name:
         candidates = _open_meteo_geocode(stripped, count)
@@ -425,10 +423,10 @@ def geocode_places(name: str, count: int = 10) -> list[dict[str, Any]]:
 
 
 def geocode_place(name: str) -> tuple[float, float, str]:
-    """Resolve a free-text place name to coordinates via Open-Meteo Geocoding.
+    """通过 Open-Meteo 地理编码将自由文本的地名解析为坐标。
 
-    Returns ``(latitude, longitude, display_label)``. Raises ``RuntimeError`` when
-    the place cannot be resolved so the caller can surface a friendly error.
+    返回 ``(latitude, longitude, display_label)``。当地名无法解析时
+    抛出 ``RuntimeError``，以便调用方给出友好的错误提示。
     """
     candidates = geocode_places(name, count=1)
     if not candidates:
@@ -438,7 +436,7 @@ def geocode_place(name: str) -> tuple[float, float, str]:
 
 
 def _candidate_label_match(top_name: str, candidate: dict[str, Any]) -> str:
-    """For a chosen top result, return the admin chain part (district/city)."""
+    """对于选中的首条结果，返回其行政区划链部分（区/市）。"""
     admin3 = candidate.get("admin3", "")
     admin2 = candidate.get("admin2", "")
     admin1 = candidate.get("admin1", "")
@@ -452,11 +450,10 @@ def _candidate_label_match(top_name: str, candidate: dict[str, Any]) -> str:
 
 
 def current_weather_by_name(name: str) -> dict[str, Any]:
-    """Look up the current weather for a named place without browser geolocation.
+    """在无需浏览器定位的情况下，查找指定地名的当前天气。
 
-    The response includes a ``candidates`` list: when the place name resolves to
-    several districts (e.g. all the districts of "广州"), every district is
-    returned so the UI can let the user refine to district level.
+    响应包含一个 ``candidates`` 列表：当地名解析到多个区时
+    （例如 "广州" 的所有区），会返回每个区，以便 UI 让用户细化到区级。
     """
     candidates = geocode_places(name, count=10)
     if not candidates:
@@ -464,7 +461,7 @@ def current_weather_by_name(name: str) -> dict[str, Any]:
     top = candidates[0]
     result = current_weather(top["latitude"], top["longitude"])
     result["location_label"] = top["label"]
-    # Surface all districts sharing the same top-level name (e.g. all "广州-天河区").
+    # 列出所有共享同一顶层名称的区（例如所有 "广州-天河区"）。
     top_name = top.get("admin3") or top.get("admin2") or top.get("admin1") or top["label"]
     same_city = [
         c
