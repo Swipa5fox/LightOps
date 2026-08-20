@@ -1,6 +1,6 @@
 # LightOps
 
-![version](https://img.shields.io/badge/version-1.4.0-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-0.1.4.1-blue?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-Linux-lightgrey?style=flat-square&logo=linux&logoColor=black)
 ![python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat-square&logo=python&logoColor=white)
 ![fastapi](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
@@ -77,7 +77,6 @@ bash deploy/preflight.sh
 只有当输出为： preflight=PASS 时才继续。此系统默认配置可直接使用；若需要改端口、域名显示或服务选择时，修改下面配置：
 
 ~~~bash
-cp config.env.example config.env
 vi config.env
 ~~~
 
@@ -91,7 +90,7 @@ bash deploy/install.sh
 
 ## 可配置项
 
-config.env.example 中包含全部首次部署选项。常用项：
+config.env 中包含全部首次部署选项。常用项：
 
 - LIGHTOPS_PUBLIC_PORT=8080
 - LIGHTOPS_SERVER_NAME=_
