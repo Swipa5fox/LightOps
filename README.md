@@ -6,8 +6,6 @@
 ![fastapi](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
 ![vue](https://img.shields.io/badge/Vue.js-35495E?style=flat-square&logo=vuedotjs&logoColor=4FC08D)
 ![sqlite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
-![nginx](https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white)
-![systemd](https://img.shields.io/badge/systemd-333333?style=flat-square&logo=systemd&logoColor=white)
 
 LightOps 是面向小型 Linux 云服务器的轻量监控与受限运维面板：FastAPI + psutil + APScheduler + SQLite 采集与存储，Vue 3（预编译模板）+ 原生 SVG 渲染前端，systemd 托管应用、Nginx 提供网页入口，带独立登录页与管理员/访客两级权限。
 
