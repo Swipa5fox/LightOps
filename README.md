@@ -7,7 +7,43 @@
 ![vue](https://img.shields.io/badge/Vue.js-35495E?style=flat-square&logo=vuedotjs&logoColor=4FC08D)
 ![sqlite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
 
-LightOps 是面向小型 Linux 云服务器的轻量监控与受限运维面板：FastAPI + psutil + APScheduler + SQLite 采集与存储，Vue 3（预编译模板）+ 原生 SVG 渲染前端，systemd 托管应用、Nginx 提供网页入口，带独立登录页与管理员/访客两级权限。
+LightOps 是一个轻量的 Linux 服务器监控面板，主要功能：
+
+- 实时监控 CPU、内存、系统盘、负载与网络流量
+- 趋势图：10 分钟 / 1 小时 / 24 小时 / 7 天
+- 资源超阈值自动告警，恢复后自动解除
+- 按城市名查询实时天气（支持区级细化）
+- 独立登录页，Admin / Guest 两级权限
+- 一键重启白名单服务、一键备份、审计日志
+- 日间 / 夜间主题一键切换
+
+技术栈：FastAPI + psutil + APScheduler + SQLite，Vue 3 前端，Nginx + systemd 部署。
+
+## 效果截图
+
+> 截图来自线上实例 `http://119.91.47.89:1224/`（腾讯云 4C/4GB/CentOS Stream 9），全部为真实运行数据。
+
+### 登录页
+
+独立登录页 `/login.html`，无 placeholder，仅标签引导；日间背景为暖阳光晕 + 蓝天 + 淡紫余韵的晨光渐变（绝不纯白），夜间为深蓝主调 + 蓝紫光晕。
+
+| 日间 | 夜间 |
+| :---: | :---: |
+| ![登录页-日间](docs/screenshots/01-login-light.png) | ![登录页-夜间](docs/screenshots/02-login-dark.png) |
+
+### 监控面板
+
+主视图含 hero 标题、实时天气（按城市查询，支持细化到区级）、4 张资源卡（CPU/内存/系统盘/活动告警）、10 分钟/1 小时/24 小时/7 天的三线趋势曲线（CPU/内存/磁盘）、服务健康与活动告警两块；顶栏右侧可见主题切换、管理令牌（仅 Admin）、立即刷新按钮。
+
+| 日间 | 夜间 |
+| :---: | :---: |
+| ![面板-日间](docs/screenshots/04-dashboard-light.png) | ![面板-夜间](docs/screenshots/03-dashboard-dark.png) |
+
+### 用户菜单与权限
+
+顶栏用户名按钮 hover 下拉：我的账户（带「管理员」角色徽标）、修改密码（独立 modal）、退出登录。管理令牌与重启/备份按钮仅 Admin 可见，访客会话一律 403，由后端 `require_admin_access` 强制门禁。
+
+![用户菜单与角色徽标](docs/screenshots/05-admin-user-menu.png)
 
 ## 系统功能
 
