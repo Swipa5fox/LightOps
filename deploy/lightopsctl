@@ -2,7 +2,6 @@
 set -Eeuo pipefail
 
 DEPLOYMENT_FILE=/etc/lightops/deployment.env
-ENV_FILE=/etc/lightops/lightops.env
 if [ -r "$DEPLOYMENT_FILE" ]; then
     # shellcheck disable=SC1090,SC1091
     . "$DEPLOYMENT_FILE"
