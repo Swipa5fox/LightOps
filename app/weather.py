@@ -422,33 +422,6 @@ def geocode_places(name: str, count: int = 10) -> list[dict[str, Any]]:
     return _open_meteo_geocode(name, count)
 
 
-def geocode_place(name: str) -> tuple[float, float, str]:
-    """通过 Open-Meteo 地理编码将自由文本的地名解析为坐标。
-
-    返回 ``(latitude, longitude, display_label)``。当地名无法解析时
-    抛出 ``RuntimeError``，以便调用方给出友好的错误提示。
-    """
-    candidates = geocode_places(name, count=1)
-    if not candidates:
-        raise RuntimeError(f"未找到地点：{name}")
-    top = candidates[0]
-    return top["latitude"], top["longitude"], top["label"]
-
-
-def _candidate_label_match(top_name: str, candidate: dict[str, Any]) -> str:
-    """对于选中的首条结果，返回其行政区划链部分（区/市）。"""
-    admin3 = candidate.get("admin3", "")
-    admin2 = candidate.get("admin2", "")
-    admin1 = candidate.get("admin1", "")
-    if admin3 and admin3 != top_name:
-        return admin3
-    if admin2 and admin2 != top_name:
-        return admin2
-    if admin1 and admin1 != top_name:
-        return admin1
-    return ""
-
-
 def current_weather_by_name(name: str) -> dict[str, Any]:
     """在无需浏览器定位的情况下，查找指定地名的当前天气。
 

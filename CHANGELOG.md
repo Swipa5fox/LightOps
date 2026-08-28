@@ -1,3 +1,27 @@
+# 🎉 版本 0.1.4.2 更新日志
+
+## LightOps 轻量服务器监控系统版本更新
+
+发布日期：2026-08-29
+
+### 移除
+
+- **下线管理令牌**：管理操作（重启服务、立即备份、审计日志）改为只认 Admin 登录会话，删掉管理令牌这条第二套鉴权通道。令牌是全局凭证、无法区分使用者，Guest 拿到即可绕过 RBAC；现在匿名 401、Guest 403、Admin 200。配套删除 `deploy/rotate-token.sh`、`LIGHTOPS_API_TOKEN` 环境变量与前端「管理令牌」按钮。
+- **清理死代码**：`style.css` 删除 175 行失效样式（旧天气内联图标、浏览器定位按钮、登录 modal 残留）；`weather.py` 删除 `geocode_place` 与 `_candidate_label_match` 两个零调用者函数。
+
+### 调整
+
+- **共享会话模块**：新增 `app/static/session.js`，面板与登录页共用同一份 sessionStorage 读写，不再各写一遍。
+- **发布清单单一真相**：`tools/build-release.py` 删掉与 `deploy/install.sh` 重复的必需文件清单，只保留安装器侧的校验。
+- **截图脚本去重**：`tools/verify-theme.mjs` 与 `tools/capture-readme.mjs` 抽公共 CDP 模块 `tools/cdp.mjs`，两者各省约 70 行胶水代码。
+- **前端小项**：容量换算合并为 `formatGB(value, decimals)`，趋势图 Y 轴换算提取为 `chartY()`，三个定时器从 Vue `data` 挪到闭包。
+
+### 修复
+
+- **主题值错位**：截图脚本此前写入 `data-theme="night"`，而主题模块只认 `light` / `dark`，已统一为 `dark`。
+
+---
+
 # 🎉 版本 0.1.4.1 更新日志
 
 ## LightOps 轻量服务器监控系统版本更新

@@ -10,7 +10,7 @@ trap 'rm -rf "$fixture_root" 2>/dev/null || true' EXIT
 env_file=$fixture_root/lightops.env
 sudoers_file=$fixture_root/lightops.sudoers
 
-printf "LIGHTOPS_API_TOKEN='test-only-not-a-real-token'\n" > "$env_file"
+: > "$env_file"
 lightops_write_env_setting "$env_file" LIGHTOPS_CLOUD_PROVIDER 'Amazon Web Services'
 lightops_write_env_setting "$env_file" LIGHTOPS_SERVICES 'nginx,redis-server'
 lightops_ensure_env_setting "$env_file" LIGHTOPS_CPU_THRESHOLD 85

@@ -78,6 +78,7 @@ validate_release_assets() {
         app/static/login.css \
         app/static/login.js \
         app/static/theme.js \
+        app/static/session.js \
         app/static/style.css \
         app/static/app.js \
         app/static/render.js \
@@ -246,10 +247,8 @@ chown -R lightops:lightops "$VENV_ROOT"
 runuser -u lightops -- "$VENV_ROOT/bin/python" -m pip install --disable-pip-version-check --requirement "$INSTALL_ROOT/requirements.txt"
 
 if [ ! -f "$ENV_FILE" ]; then
-    api_token=$(openssl rand -hex 32)
     umask 0027
-    printf "LIGHTOPS_API_TOKEN='%s'\n" "$api_token" > "$ENV_FILE"
-    unset api_token
+    : > "$ENV_FILE"
 fi
 lightops_write_env_setting "$ENV_FILE" LIGHTOPS_CLOUD_PROVIDER "$cloud_provider"
 lightops_write_env_setting "$ENV_FILE" LIGHTOPS_DB_PATH "$STATE_ROOT/lightops.db"
@@ -262,6 +261,8 @@ lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_RETENTION_DAYS 7
 lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_CPU_THRESHOLD 85
 lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_MEMORY_THRESHOLD 85
 lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_DISK_THRESHOLD 80
+# 清理旧版本留下的管理令牌配置行（令牌通道已在 0.1.4.2 下线）。
+sed -i '/^LIGHTOPS_API_TOKEN=/d' "$ENV_FILE"
 chown root:lightops "$ENV_FILE"
 chmod 0640 "$ENV_FILE"
 
@@ -277,7 +278,8 @@ mv -f "$sudoers_candidate" "$SUDOERS_DEST"
 install -m 0644 "$PACKAGE_ROOT/deploy/lightops.service" "$SYSTEMD_DEST"
 install -m 0755 "$PACKAGE_ROOT/deploy/lightopsctl" /usr/local/bin/lightopsctl
 install -m 0755 "$PACKAGE_ROOT/deploy/verify-server.sh" /usr/local/bin/lightops-verify
-install -m 0755 "$PACKAGE_ROOT/deploy/rotate-token.sh" /usr/local/sbin/lightops-rotate-token
+# 管理令牌已在 0.1.4.2 下线，清掉旧版本留下的轮换脚本，避免误用。
+rm -f /usr/local/sbin/lightops-rotate-token
 
 nginx_candidate=$(mktemp)
 sed \

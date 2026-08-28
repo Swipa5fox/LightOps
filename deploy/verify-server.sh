@@ -2,7 +2,6 @@
 set -Eeuo pipefail
 
 DEPLOYMENT_FILE=/etc/lightops/deployment.env
-ENV_FILE=/etc/lightops/lightops.env
 # shellcheck disable=SC1090,SC1091
 . "$DEPLOYMENT_FILE"
 
@@ -40,16 +39,16 @@ curl --fail --silent --show-error "http://127.0.0.1:$PUBLIC_PORT/api/summary"
 echo
 
 echo "AUTH_GUARD"
-set -a
-# shellcheck disable=SC1090,SC1091
-. "$ENV_FILE"
-set +a
+# 管理接口只认 admin 会话：匿名 401，Guest 会话 403。
 unauthorized_status=$(curl --silent --output /dev/null --write-out "%{http_code}" "http://127.0.0.1:$PUBLIC_PORT/api/audit")
-authorized_status=$(curl --silent --output /dev/null --write-out "%{http_code}" --header "Authorization: Bearer $LIGHTOPS_API_TOKEN" "http://127.0.0.1:$PUBLIC_PORT/api/audit")
-unset LIGHTOPS_API_TOKEN
-echo "unauthorized=$unauthorized_status authorized=$authorized_status"
+guest_token=$(curl --silent --fail -X POST "http://127.0.0.1:$PUBLIC_PORT/api/login" \
+    -H 'Content-Type: application/json' \
+    -d '{"username":"Guest","password":"123456"}' \
+    | sed -n 's/.*"token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+guest_status=$(curl --silent --output /dev/null --write-out "%{http_code}" --header "Authorization: Bearer $guest_token" "http://127.0.0.1:$PUBLIC_PORT/api/audit")
+echo "unauthorized=$unauthorized_status guest=$guest_status"
 test "$unauthorized_status" = 401
-test "$authorized_status" = 200
+test "$guest_status" = 403
 
 echo "STATIC_ASSETS"
 curl --fail --silent --show-error --head "http://127.0.0.1:$PUBLIC_PORT/vendor/vue.runtime.global.prod.js" | head -n 8

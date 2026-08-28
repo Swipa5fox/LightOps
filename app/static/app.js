@@ -2,69 +2,21 @@
   "use strict";
 
   var createApp = window.Vue.createApp;
-  var TOKEN_KEY = "lightops_api_token";
-  var SESSION_KEY = "lightops_session";
   var WEATHER_PLACE_KEY = "lightops_weather_place";
   var DEFAULT_WEATHER_PLACE = "广州-黄埔区";
   var REQUEST_TIMEOUT_MS = 10000;
   var WEATHER_REFRESH_MS = 30 * 60 * 1000;
   var CLOCK_REFRESH_MS = 60 * 1000;
+  // Timers are plain closures: nothing renders off their ids.
+  var refreshTimer = null;
+  var weatherTimer = null;
+  var clockTimer = null;
+  var session = window.LightOpsSession;
 
-  function readSession() {
-    try {
-      return window.sessionStorage.getItem(SESSION_KEY) || "";
-    } catch (error) {
-      return "";
-    }
-  }
-
-  function writeSession(token) {
-    try {
-      if (token) {
-        window.sessionStorage.setItem(SESSION_KEY, token);
-      } else {
-        window.sessionStorage.removeItem(SESSION_KEY);
-      }
-    } catch (error) {
-      // Storage can be unavailable in hardened or private browser contexts.
-    }
-  }
-
-  function readToken() {
-    try {
-      return window.sessionStorage.getItem(TOKEN_KEY) || "";
-    } catch (error) {
-      return "";
-    }
-  }
-
-  function writeToken(token) {
-    try {
-      window.sessionStorage.setItem(TOKEN_KEY, token);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  function clearToken() {
-    try {
-      window.sessionStorage.removeItem(TOKEN_KEY);
-    } catch (error) {
-      // Storage can be unavailable in hardened or private browser contexts.
-    }
-  }
-
-  function migrateLegacyToken() {
-    try {
-      var legacy = window.localStorage.getItem(TOKEN_KEY);
-      if (legacy && !readToken()) {
-        writeToken(legacy);
-      }
-      window.localStorage.removeItem(TOKEN_KEY);
-    } catch (error) {
-      // A blocked localStorage must not prevent the read-only dashboard loading.
-    }
+  // Chart geometry: 0-100% maps to y in [0, 260] on the 1000x260 viewBox.
+  function chartY(value) {
+    var safe = Math.max(0, Math.min(100, Number(value) || 0));
+    return 260 - safe * 2.6;
   }
 
   function readWeatherPlace() {
@@ -105,14 +57,11 @@
         updatedAt: "",
         error: "",
         trendHover: null,
-        refreshTimer: null,
         refreshRequested: false,
         weather: null,
         weatherLoading: false,
         weatherError: "",
         weatherPlace: "",
-        weatherTimer: null,
-        clockTimer: null,
         currentTime: new Date(),
         showPasswordModal: false,
         currentUser: "",
@@ -318,33 +267,32 @@
             themeMedia.addListener(followSystemTheme);
           }
         }
-        migrateLegacyToken();
         var loggedIn = await this.restoreLogin();
         if (!loggedIn) {
           return;
         }
         this.refresh();
         this.initializeWeather();
-        this.refreshTimer = window.setInterval(this.refresh, 30000);
-        this.weatherTimer = window.setInterval(this.refreshWeather, WEATHER_REFRESH_MS);
-        this.clockTimer = window.setInterval(function () {
+        refreshTimer = window.setInterval(this.refresh, 30000);
+        weatherTimer = window.setInterval(this.refreshWeather, WEATHER_REFRESH_MS);
+        clockTimer = window.setInterval(function () {
           this.currentTime = new Date();
         }.bind(this), CLOCK_REFRESH_MS);
       },
       beforeUnmount: function () {
-        window.clearInterval(this.refreshTimer);
-        window.clearInterval(this.weatherTimer);
-        window.clearInterval(this.clockTimer);
+        window.clearInterval(refreshTimer);
+        window.clearInterval(weatherTimer);
+        window.clearInterval(clockTimer);
       },
     methods: {
       authHeaders: function () {
-        var token = readSession() || readToken();
+        var token = session.read();
         return token ? { Authorization: "Bearer " + token } : {};
       },
       restoreLogin: async function () {
         // 未持有会话一律跳转独立登录页；会话失效同样跳转。
-        var session = readSession();
-        if (!session) {
+        var sessionToken = session.read();
+        if (!sessionToken) {
           window.location.replace("/login.html");
           return false;
         }
@@ -356,7 +304,7 @@
           this.role = me.role === "admin" ? "admin" : "guest";
           return true;
         } catch (error) {
-          writeSession("");
+          session.write("");
           this.currentUser = "";
           this.role = "";
           window.location.replace("/login.html");
@@ -399,7 +347,7 @@
         } catch (error) {
           // 即使服务端失败，本地会话也清除。
         } finally {
-          writeSession("");
+          session.write("");
           this.currentUser = "";
           this.role = "";
           this.showPasswordModal = false;
@@ -435,7 +383,7 @@
           this.passwordSuccess = "密码已更新，请重新登录";
           this.passwordForm = { oldPassword: "", newPassword: "", confirmPassword: "" };
           // 服务端已使旧会话失效，本地立即退出登录态并回到登录页。
-          writeSession("");
+          session.write("");
           this.currentUser = "";
           this.role = "";
           this.showPasswordModal = false;
@@ -643,9 +591,7 @@
         var lastIndex = Math.max(1, this.history.length - 1);
         return this.history.map(function (item, index) {
           var x = index / lastIndex * 1000;
-          var value = Math.max(0, Math.min(100, Number(item[key]) || 0));
-          var y = 260 - value * 2.6;
-          return x.toFixed(2) + "," + y.toFixed(2);
+          return x.toFixed(2) + "," + chartY(item[key]).toFixed(2);
         }).join(" ");
       },
       updateTrendHover: function (event) {
@@ -669,10 +615,6 @@
           : 0;
         var screenX = svgRect.left - shellRect.left + x / 1000 * svgRect.width;
         var tooltipLeft = Math.max(92, Math.min(shellRect.width - 92, screenX));
-        var chartY = function (value) {
-          var safe = Math.max(0, Math.min(100, Number(value) || 0));
-          return 260 - safe * 2.6;
-        };
 
         this.trendHover = {
           x: x,
@@ -710,45 +652,7 @@
             })
           : "--";
       },
-      saveToken: function () {
-        var existing = readToken();
-        var token = window.prompt(
-          "输入管理令牌（仅保存在当前浏览器标签页会话）",
-          existing
-        );
-        if (token === null) {
-          return;
-        }
-        if (token.trim()) {
-          if (writeToken(token.trim())) {
-            window.alert("管理令牌已保存到当前会话");
-          } else {
-            window.alert("浏览器禁止会话存储，令牌未保存");
-          }
-        } else {
-          clearToken();
-          window.alert("管理令牌已清除");
-        }
-      },
-      ensureToken: function () {
-        if (readToken()) {
-          return true;
-        }
-        this.saveToken();
-        return Boolean(readToken());
-      },
-      handleAuthError: function (error) {
-        if (!error || error.status !== 401) {
-          return false;
-        }
-        clearToken();
-        window.alert("管理令牌无效或已轮换，请重新输入");
-        return true;
-      },
       restartService: async function (service) {
-        if (!this.ensureToken()) {
-          return;
-        }
         if (!window.confirm("确认重启服务 " + service + "？")) {
           return;
         }
@@ -761,17 +665,12 @@
           window.alert(service + " 已完成重启");
           await this.refresh();
         } catch (error) {
-          if (!this.handleAuthError(error)) {
-            window.alert("重启失败：" + error.message);
-          }
+          window.alert("重启失败：" + error.message);
         } finally {
           this.restartBusy = "";
         }
       },
       runMaintenance: async function () {
-        if (!this.ensureToken()) {
-          return;
-        }
         try {
           var result = await this.fetchJson("/api/maintenance/run", {
             method: "POST",
@@ -779,9 +678,7 @@
           });
           window.alert("备份已完成：" + result.backup);
         } catch (error) {
-          if (!this.handleAuthError(error)) {
-            window.alert("备份失败：" + error.message);
-          }
+          window.alert("备份失败：" + error.message);
         }
       },
       formatPercent: function (value) {
@@ -816,18 +713,12 @@
       statusClass: function (value) {
         return this.statusInfo(value, "使用偏高").cls;
       },
-      formatHardwareCapacity: function (value) {
+      formatGB: function (value, decimals) {
         var bytes = Number(value);
         if (!Number.isFinite(bytes) || bytes <= 0) {
           return "--";
         }
-        return Math.ceil(bytes / 1073741824) + "GB";
-      },
-      formatBytes: function (value) {
-        if (!value) {
-          return "--";
-        }
-        return (value / 1073741824).toFixed(1) + " GB";
+        return (bytes / 1073741824).toFixed(decimals) + " GB";
       },
       formatTime: function (value) {
         return value ? new Date(value).toLocaleString("zh-CN", { hour12: false }) : "--";

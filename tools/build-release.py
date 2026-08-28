@@ -22,18 +22,6 @@ EXCLUDED_NAMES = {
     ".env",
     "config.env",
 }
-REQUIRED_FILES = (
-    "README.md",
-    "requirements.txt",
-    "app/static/index.html",
-    "app/static/app.js",
-    "app/static/render.js",
-    "app/static/vendor/vue.runtime.global.prod.js",
-    "deploy/install.sh",
-    "deploy/preflight.sh",
-)
-
-
 def release_version() -> str:
     match = re.search(
         r'^__version__\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?)"$',
@@ -88,10 +76,9 @@ def normalized_file_content(path: Path) -> bytes:
 
 
 def build(output: Path) -> str:
-    missing = [name for name in REQUIRED_FILES if not (ROOT / name).is_file()]
-    if missing:
-        raise RuntimeError("Missing release files: " + ", ".join(missing))
-
+    # Asset completeness is enforced by validate_release_assets() in
+    # deploy/install.sh; a second list here would just be a second place to
+    # forget whenever a static file is added.
     output.parent.mkdir(parents=True, exist_ok=True)
     paths = [ROOT, *(path for path in ROOT.rglob("*") if included(path))]
     with output.open("wb") as raw:

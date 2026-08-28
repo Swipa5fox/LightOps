@@ -31,7 +31,7 @@ LightOps 是一个轻量的 Linux 服务器监控面板，主要功能：
 
 ### 监控面板
 
-主视图含 hero 标题、实时天气（按城市查询，支持细化到区级）、4 张资源卡（CPU/内存/系统盘/活动告警）、10 分钟/1 小时/24 小时/7 天的三线趋势曲线（CPU/内存/磁盘）、服务健康与活动告警两块；顶栏右侧可见主题切换、管理令牌（仅 Admin）、立即刷新按钮。
+主视图含 hero 标题、实时天气（按城市查询，支持细化到区级）、4 张资源卡（CPU/内存/系统盘/活动告警）、10 分钟/1 小时/24 小时/7 天的三线趋势曲线（CPU/内存/磁盘）、服务健康与活动告警两块；顶栏右侧可见主题切换、立即刷新按钮。
 
 | 日间 | 夜间 |
 | :---: | :---: |
@@ -39,7 +39,7 @@ LightOps 是一个轻量的 Linux 服务器监控面板，主要功能：
 
 ### 用户菜单与权限
 
-顶栏用户名按钮下拉：我的账户（带「管理员」角色徽标）、修改密码（独立 modal）、退出登录。管理令牌与重启/备份按钮仅Admin可见。
+顶栏用户名按钮下拉：我的账户（带「管理员」角色徽标）、修改密码（独立 modal）、退出登录。重启/备份按钮仅 Admin 可见。
 
 ![用户菜单与角色徽标](docs/screenshots/05-admin-user-menu.png)
 
@@ -58,9 +58,9 @@ LightOps 是一个轻量的 Linux 服务器监控面板，主要功能：
 
 - 独立登录页 ：全新界面，未登录访问面板自动跳转，登录成功回跳；
 - 两级角色：**Admin（管理员）** 拥有全部权限，**Guest（访客）** 仅支持查看面板；
-- 管理操作（重启服务、立即备份、审计日志）由后端强制门禁：管理令牌或管理员会话可通行，访客会话一律403，前端同时隐藏对应按钮；
+- 管理操作（重启服务、立即备份、审计日志）由后端强制门禁：仅管理员（Admin）会话可通行，访客会话一律 403，前端同时隐藏对应按钮；
 - 修改密码后所有旧会话立即失效，强制重新登录；
-- 密码以 PBKDF2-HMAC-SHA256 哈希存储，管理令牌仅保存在当前浏览器标签页会话，失效自动清除。
+- 密码以 PBKDF2-HMAC-SHA256 哈希存储，登录会话仅保存在当前浏览器标签页（sessionStorage），关闭标签页即失效。
 
 ### 运维操作
 
@@ -82,20 +82,20 @@ LightOps 是一个轻量的 Linux 服务器监控面板，主要功能：
 
 - **采集与调度**：`collector` 模块用 psutil 读取系统指标，APScheduler（后台线程池）驱动"采集 + 每日维护"两个任务，采集频率与保留期可配置；
 - **存储**：SQLite（WAL 模式）单文件存储指标、服务采样、告警、审计日志与用户会话；指标与审计默认保留 7 天，每日 3 点清理过期数据并做一致性备份；
-- **认证与授权**：登录签发随机会话 token（7 天有效），密码 PBKDF2 哈希；用户表带 `role` 列区分 admin/guest；管理操作通过 FastAPI 依赖注入 `require_admin_access` 统一门禁——管理令牌（常量时间比较）或管理员会话放行，访客会话 403，无凭证 401；
+- **认证与授权**：登录签发随机会话 token（7 天有效），密码 PBKDF2 哈希；用户表带 `role` 列区分 admin/guest；管理操作通过 FastAPI 依赖注入 `require_admin_access` 统一门禁——仅 admin 角色会话放行，访客会话 403，无凭证 401；
 - **API 设计**：只读数据接口（summary/metrics/services/alerts/weather）不设门槛保证面板可用，写操作集中收口到三个受保护接口，风险面最小。
 
 ### 前端
 
 - **零构建发布**：Vue 3 运行时 + `@vue/compiler-dom` 离线预编译的 `render.js`（由 `tools/generate-render.mjs` 从 index.html 生成），发布包不含 CDN 依赖、不含图表库，趋势曲线用原生 SVG 绘制；
 - **登录页独立**：`login.html` 使用原生 JavaScript（无 Vue），与面板完全分离，聚焦认证单一职责；
-- **状态管理**：会话与天气偏好存 sessionStorage，管理令牌与登录会话分离；主题偏好由独立 `theme.js` 集中读写 localStorage（`lightops_theme`），`app.js` 不触碰 localStorage，面板与登录页共享同一套偏好。
+- **状态管理**：登录会话由共享的 `session.js` 读写 sessionStorage，天气偏好同样存 sessionStorage；主题偏好由独立 `theme.js` 集中读写 localStorage（`lightops_theme`），`app.js` 不触碰 localStorage，面板与登录页共享同一套偏好。
 
 ### 部署
 
 - **跨发行版自适应**：安装器组合读取 /etc/os-release、PID 1、包管理器、架构、命令实际路径与 systemd unit 后自动选择方案，支持 Ubuntu/Debian 与 RHEL 系（dnf/yum），非 systemd 或容器环境安全停止而非猜测；
 - **进程拓扑**：Uvicorn 单 worker 仅监听 127.0.0.1:8000，Nginx 反代到配置端口，systemd `MemoryMax=400M` 限制内存占用；
-- **最小权限**：lightops 系统用户 + sudoers 白名单（仅允许重启白名单服务），管理令牌存 0640 root:lightops 配置文件；
+- **最小权限**：lightops 系统用户 + sudoers 白名单（仅允许重启白名单服务），运行配置存 0640 root:lightops；
 - **发布与回滚**：`tools/build-release.py` 确定性构建发布包并计算 SHA-256，升级流程在临时目录预检、备份后安装，失败自动回滚。
 
 ## 从 0 到 1 部署项目
@@ -118,7 +118,7 @@ vi config.env
 bash deploy/install.sh
 ~~~
 
-安装器将自动识别系统与架构、安装运行依赖、创建 lightops 用户/虚拟环境/随机管理令牌、生成 Nginx 配置与 sudoers 白名单、启动并做健康检查。安装器不会修改 MySQL/Redis 配置或认证，不会自动修改云安全组/防火墙，也不会默认创建 Swap。
+安装器将自动识别系统与架构、安装运行依赖、创建 lightops 用户/虚拟环境、生成 Nginx 配置与 sudoers 白名单、启动并做健康检查。安装器不会修改 MySQL/Redis 配置或认证，不会自动修改云安全组/防火墙，也不会默认创建 Swap。
 
 ## 修改管理员密码
 
@@ -135,7 +135,7 @@ bash deploy/install.sh
 
 - 新密码长度至少 6 位，以 PBKDF2-HMAC-SHA256 哈希存储，数据库中不保存明文；
 - Admin 与 Guest 均可通过该入口修改自己的密码，改密码操作会记录到审计日志；
-- 若忘记密码，请联系能访问服务器 root 的管理员处理；**目前没有命令行重置密码工具，也不要把修改管理令牌与修改密码混淆**。
+- 若忘记密码，请联系能访问服务器 root 的管理员处理；**目前没有命令行重置密码工具**。
 
 ## 可配置项
 
@@ -164,7 +164,7 @@ auto 服务检测候选：
 | Python 虚拟环境 | /opt/lightops/.venv |
 | SQLite 数据 | /var/lib/lightops/lightops.db |
 | 自动备份 | /var/lib/lightops/backups |
-| 含管理令牌的配置 | /etc/lightops/lightops.env，0640 root:lightops |
+| 运行配置 | /etc/lightops/lightops.env，0640 root:lightops |
 | 非敏感部署信息 | /etc/lightops/deployment.env |
 | systemd unit | /etc/systemd/system/lightops.service |
 | Nginx 站点 | /etc/nginx/conf.d/lightops.conf |
@@ -186,7 +186,7 @@ lightopsctl url
 sudo lightops-verify
 ~~~
 
-管理令牌只允许在服务器本地从 /etc/lightops/lightops.env 读取。面板只在当前浏览器标签页会话中保存它，关闭标签页后需要重新输入。不要把令牌、SSH 私钥、MySQL 密码或 Redis 密码粘贴到聊天中。
+管理操作一律走 Admin 登录会话，不要再引入任何第二套凭证。不要把 SSH 私钥、MySQL 密码或 Redis 密码粘贴到聊天中。
 
 ## 修改前端
 
@@ -220,7 +220,7 @@ bash tests/platform_detection.sh
 bash tests/install_helpers.sh
 bash tests/nginx_template.sh
 bash -n deploy/lib/platform.sh deploy/lib/config.sh deploy/preflight.sh deploy/install.sh
-bash -n deploy/lightopsctl deploy/verify-server.sh deploy/rotate-token.sh
+bash -n deploy/lightopsctl deploy/verify-server.sh
 ~~~
 
 发行版分支测试使用隔离的 /etc/os-release、架构和包管理器夹具，不会修改测试主机。真实发布仍需在目标服务器执行预检、安装和验收。

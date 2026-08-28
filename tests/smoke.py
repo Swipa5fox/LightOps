@@ -9,7 +9,6 @@ from pathlib import Path
 temp_dir = tempfile.TemporaryDirectory()
 root = Path(temp_dir.name)
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-os.environ["LIGHTOPS_API_TOKEN"] = "x" * 64
 os.environ["LIGHTOPS_DB_PATH"] = str(root / "lightops.db")
 os.environ["LIGHTOPS_BACKUP_DIR"] = str(root / "backups")
 os.environ["LIGHTOPS_SERVICES"] = "nginx,mysqld,redis"

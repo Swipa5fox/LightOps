@@ -89,7 +89,6 @@ jobs:
           shellcheck \
             deploy/preflight.sh \
             deploy/install.sh \
-            deploy/rotate-token.sh \
             deploy/verify-server.sh \
             deploy/lightopsctl \
             deploy/lib/config.sh \

@@ -38,7 +38,6 @@ class Settings:
     backup_dir: Path = Path(
         os.getenv("LIGHTOPS_BACKUP_DIR", "/var/lib/lightops/backups")
     )
-    api_token: str = os.getenv("LIGHTOPS_API_TOKEN", "")
     cloud_provider: str = os.getenv("LIGHTOPS_CLOUD_PROVIDER", "云服务器")
     systemctl_path: str = os.getenv(
         "LIGHTOPS_SYSTEMCTL_PATH", "/usr/bin/systemctl"
@@ -57,10 +56,6 @@ class Settings:
     )
 
     def validate(self) -> None:
-        if not self.api_token or len(self.api_token) < 32:
-            raise RuntimeError(
-                "LIGHTOPS_API_TOKEN is required and must be at least 32 characters"
-            )
         if self.collect_interval_seconds < 15:
             raise RuntimeError("LIGHTOPS_COLLECT_INTERVAL must be at least 15 seconds")
         if self.retention_days < 1:

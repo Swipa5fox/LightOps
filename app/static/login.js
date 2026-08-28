@@ -1,37 +1,17 @@
 (function () {
   "use strict";
 
-  var SESSION_KEY = "lightops_session";
-
-  function readSession() {
-    try {
-      return window.sessionStorage.getItem(SESSION_KEY) || "";
-    } catch (error) {
-      return "";
-    }
-  }
-
-  function writeSession(token) {
-    try {
-      if (token) {
-        window.sessionStorage.setItem(SESSION_KEY, token);
-      } else {
-        window.sessionStorage.removeItem(SESSION_KEY);
-      }
-    } catch (error) {
-      // Storage can be unavailable in hardened or private browser contexts.
-    }
-  }
+  var session = window.LightOpsSession;
 
   // 已持有有效会话时直接进入控制台。
   (async function () {
-    var session = readSession();
-    if (!session) {
+    var token = session.read();
+    if (!token) {
       return;
     }
     try {
       var response = await window.fetch("/api/auth/me", {
-        headers: { Authorization: "Bearer " + session }
+        headers: { Authorization: "Bearer " + token }
       });
       if (response.ok) {
         window.location.replace("/");
@@ -75,7 +55,7 @@
       if (!response.ok) {
         throw new Error(body.detail || "登录失败（" + response.status + "）");
       }
-      writeSession(body.token || "");
+      session.write(body.token || "");
       window.location.replace("/");
     } catch (error) {
       showError(error.message || "登录失败，请稍后重试");

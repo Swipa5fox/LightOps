@@ -211,7 +211,7 @@ const _hoisted_102 = { class: "footer-copyright" }
 return function render(_ctx, _cache) {
   return (_openBlock(), _createElementBlock(_Fragment, null, [
     _createElementVNode("header", _hoisted_1, [
-      _cache[22] || (_cache[22] = _createElementVNode("div", { class: "brand" }, [
+      _cache[21] || (_cache[21] = _createElementVNode("div", { class: "brand" }, [
         _createElementVNode("div", {
           class: "brand-mark",
           "aria-hidden": "true"
@@ -230,7 +230,7 @@ return function render(_ctx, _cache) {
           "aria-label": _ctx.themeLabel,
           title: _ctx.themeLabel,
           onClick: _cache[0] || (_cache[0] = (...args) => (_ctx.toggleTheme && _ctx.toggleTheme(...args)))
-        }, _cache[19] || (_cache[19] = [
+        }, _cache[18] || (_cache[18] = [
           _createElementVNode("svg", {
             class: "theme-toggle-sun",
             viewBox: "0 0 24 24",
@@ -253,7 +253,7 @@ return function render(_ctx, _cache) {
             _createElementVNode("path", { d: "M20.3 14.4A8.5 8.5 0 0 1 9.6 3.7a8.5 8.5 0 1 0 10.7 10.7Z" })
           ], -1 /* CACHED */)
         ]), 10 /* CLASS, PROPS */, _hoisted_3),
-        _cache[21] || (_cache[21] = _createElementVNode("span", {
+        _cache[20] || (_cache[20] = _createElementVNode("span", {
           class: "live-dot",
           "aria-hidden": "true"
         }, null, -1 /* CACHED */)),
@@ -272,7 +272,7 @@ return function render(_ctx, _cache) {
           (_ctx.currentUser)
             ? (_openBlock(), _createElementBlock("div", _hoisted_7, [
                 _createElementVNode("div", _hoisted_8, [
-                  _cache[20] || (_cache[20] = _createElementVNode("span", null, "我的账户", -1 /* CACHED */)),
+                  _cache[19] || (_cache[19] = _createElementVNode("span", null, "我的账户", -1 /* CACHED */)),
                   _createElementVNode("strong", null, _toDisplayString(_ctx.currentUser), 1 /* TEXT */),
                   _createElementVNode("em", {
                     class: _normalizeClass(["user-menu-role", _ctx.isAdmin ? 'role-admin' : 'role-guest'])
@@ -294,20 +294,12 @@ return function render(_ctx, _cache) {
               ]))
             : _createCommentVNode("v-if", true)
         ]),
-        (_ctx.isAdmin)
-          ? (_openBlock(), _createElementBlock("button", {
-              key: 0,
-              type: "button",
-              class: "ghost-button",
-              onClick: _cache[4] || (_cache[4] = (...args) => (_ctx.saveToken && _ctx.saveToken(...args)))
-            }, "管理令牌"))
-          : _createCommentVNode("v-if", true),
         _createElementVNode("button", {
           type: "button",
           class: "primary-button",
           disabled: _ctx.loading,
           "aria-busy": _ctx.loading,
-          onClick: _cache[5] || (_cache[5] = (...args) => (_ctx.refresh && _ctx.refresh(...args)))
+          onClick: _cache[4] || (_cache[4] = (...args) => (_ctx.refresh && _ctx.refresh(...args)))
         }, _toDisplayString(_ctx.loading ? "刷新中" : "刷新"), 9 /* TEXT, PROPS */, _hoisted_10)
       ])
     ]),
@@ -316,26 +308,26 @@ return function render(_ctx, _cache) {
       ? (_openBlock(), _createElementBlock("div", {
           key: 0,
           class: "modal-mask",
-          onClick: _cache[12] || (_cache[12] = _withModifiers((...args) => (_ctx.closePasswordModal && _ctx.closePasswordModal(...args)), ["self"]))
+          onClick: _cache[11] || (_cache[11] = _withModifiers((...args) => (_ctx.closePasswordModal && _ctx.closePasswordModal(...args)), ["self"]))
         }, [
           _createElementVNode("div", _hoisted_11, [
             _createElementVNode("div", _hoisted_12, [
-              _cache[23] || (_cache[23] = _createElementVNode("h2", { id: "password-title" }, "修改密码", -1 /* CACHED */)),
+              _cache[22] || (_cache[22] = _createElementVNode("h2", { id: "password-title" }, "修改密码", -1 /* CACHED */)),
               _createElementVNode("button", {
                 type: "button",
                 class: "modal-close",
                 "aria-label": "关闭",
-                onClick: _cache[6] || (_cache[6] = (...args) => (_ctx.closePasswordModal && _ctx.closePasswordModal(...args)))
+                onClick: _cache[5] || (_cache[5] = (...args) => (_ctx.closePasswordModal && _ctx.closePasswordModal(...args)))
               }, "×")
             ]),
             _createElementVNode("form", {
               class: "modal-body",
-              onSubmit: _cache[11] || (_cache[11] = _withModifiers((...args) => (_ctx.submitChangePassword && _ctx.submitChangePassword(...args)), ["prevent"]))
+              onSubmit: _cache[10] || (_cache[10] = _withModifiers((...args) => (_ctx.submitChangePassword && _ctx.submitChangePassword(...args)), ["prevent"]))
             }, [
               _createElementVNode("label", _hoisted_13, [
-                _cache[24] || (_cache[24] = _createElementVNode("span", null, "原密码", -1 /* CACHED */)),
+                _cache[23] || (_cache[23] = _createElementVNode("span", null, "原密码", -1 /* CACHED */)),
                 _withDirectives(_createElementVNode("input", {
-                  "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((_ctx.passwordForm.oldPassword) = $event)),
+                  "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((_ctx.passwordForm.oldPassword) = $event)),
                   type: "password",
                   autocomplete: "current-password",
                   required: ""
@@ -344,9 +336,9 @@ return function render(_ctx, _cache) {
                 ])
               ]),
               _createElementVNode("label", _hoisted_14, [
-                _cache[25] || (_cache[25] = _createElementVNode("span", null, "新密码（至少 6 位）", -1 /* CACHED */)),
+                _cache[24] || (_cache[24] = _createElementVNode("span", null, "新密码（至少 6 位）", -1 /* CACHED */)),
                 _withDirectives(_createElementVNode("input", {
-                  "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((_ctx.passwordForm.newPassword) = $event)),
+                  "onUpdate:modelValue": _cache[7] || (_cache[7] = $event => ((_ctx.passwordForm.newPassword) = $event)),
                   type: "password",
                   autocomplete: "new-password",
                   minlength: "6",
@@ -356,9 +348,9 @@ return function render(_ctx, _cache) {
                 ])
               ]),
               _createElementVNode("label", _hoisted_15, [
-                _cache[26] || (_cache[26] = _createElementVNode("span", null, "确认新密码", -1 /* CACHED */)),
+                _cache[25] || (_cache[25] = _createElementVNode("span", null, "确认新密码", -1 /* CACHED */)),
                 _withDirectives(_createElementVNode("input", {
-                  "onUpdate:modelValue": _cache[9] || (_cache[9] = $event => ((_ctx.passwordForm.confirmPassword) = $event)),
+                  "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((_ctx.passwordForm.confirmPassword) = $event)),
                   type: "password",
                   autocomplete: "new-password",
                   minlength: "6",
@@ -377,7 +369,7 @@ return function render(_ctx, _cache) {
                 _createElementVNode("button", {
                   type: "button",
                   class: "ghost-button",
-                  onClick: _cache[10] || (_cache[10] = (...args) => (_ctx.closePasswordModal && _ctx.closePasswordModal(...args)))
+                  onClick: _cache[9] || (_cache[9] = (...args) => (_ctx.closePasswordModal && _ctx.closePasswordModal(...args)))
                 }, "取消"),
                 _createElementVNode("button", {
                   type: "submit",
@@ -392,16 +384,16 @@ return function render(_ctx, _cache) {
     _createElementVNode("main", _hoisted_20, [
       _createElementVNode("section", _hoisted_21, [
         _createElementVNode("div", null, [
-          _cache[27] || (_cache[27] = _createElementVNode("div", { class: "eyebrow" }, "SYSTEM OVERVIEW", -1 /* CACHED */)),
-          _cache[28] || (_cache[28] = _createElementVNode("div", { class: "hero-heading" }, [
+          _cache[26] || (_cache[26] = _createElementVNode("div", { class: "eyebrow" }, "SYSTEM OVERVIEW", -1 /* CACHED */)),
+          _cache[27] || (_cache[27] = _createElementVNode("div", { class: "hero-heading" }, [
             _createElementVNode("h1", { id: "page-title" }, "轻量服务器监控系统"),
             _createElementVNode("span", { class: "environment-badge" }, "LIGHTOPS")
           ], -1 /* CACHED */)),
           _createElementVNode("p", _hoisted_22, [
             _createElementVNode("span", null, _toDisplayString(_ctx.host.cloud_provider || "云服务器"), 1 /* TEXT */),
             _createElementVNode("span", null, _toDisplayString(_ctx.host.cpu_count || "--") + " 核 CPU", 1 /* TEXT */),
-            _createElementVNode("span", null, _toDisplayString(_ctx.formatHardwareCapacity(_ctx.host.memory_total)) + " 内存", 1 /* TEXT */),
-            _createElementVNode("span", null, _toDisplayString(_ctx.formatHardwareCapacity(_ctx.host.disk_total)) + " 系统盘", 1 /* TEXT */),
+            _createElementVNode("span", null, _toDisplayString(_ctx.formatGB(_ctx.host.memory_total, 0)) + " 内存", 1 /* TEXT */),
+            _createElementVNode("span", null, _toDisplayString(_ctx.formatGB(_ctx.host.disk_total, 0)) + " 系统盘", 1 /* TEXT */),
             _createElementVNode("span", null, _toDisplayString(_ctx.host.os_name || "Linux"), 1 /* TEXT */)
           ])
         ]),
@@ -424,7 +416,7 @@ return function render(_ctx, _cache) {
                     : _createCommentVNode("v-if", true)
                 ]))
               : (_openBlock(), _createElementBlock("div", _hoisted_27, [
-                  _cache[29] || (_cache[29] = _createElementVNode("strong", null, "--°", -1 /* CACHED */)),
+                  _cache[28] || (_cache[28] = _createElementVNode("strong", null, "--°", -1 /* CACHED */)),
                   _createElementVNode("span", null, _toDisplayString(_ctx.weatherLoading ? "查询中" : (_ctx.weatherError || "选择城市查看天气")), 1 /* TEXT */)
                 ])),
             (_ctx.weather && _ctx.weatherCandidates.length > 1)
@@ -447,8 +439,8 @@ return function render(_ctx, _cache) {
               _withDirectives(_createElementVNode("input", {
                 class: "weather-picker-input",
                 type: "text",
-                "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((_ctx.weatherPlace) = $event)),
-                onKeyup: _cache[14] || (_cache[14] = _withKeys((...args) => (_ctx.searchWeather && _ctx.searchWeather(...args)), ["enter"])),
+                "onUpdate:modelValue": _cache[12] || (_cache[12] = $event => ((_ctx.weatherPlace) = $event)),
+                onKeyup: _cache[13] || (_cache[13] = _withKeys((...args) => (_ctx.searchWeather && _ctx.searchWeather(...args)), ["enter"])),
                 disabled: _ctx.weatherLoading,
                 placeholder: "输入城市名，如 北京",
                 "aria-label": "城市名称"
@@ -459,7 +451,7 @@ return function render(_ctx, _cache) {
                 type: "button",
                 class: "weather-picker-btn",
                 disabled: _ctx.weatherLoading,
-                onClick: _cache[15] || (_cache[15] = (...args) => (_ctx.searchWeather && _ctx.searchWeather(...args)))
+                onClick: _cache[14] || (_cache[14] = (...args) => (_ctx.searchWeather && _ctx.searchWeather(...args)))
               }, "查询", 8 /* PROPS */, _hoisted_34)
             ])
           ])
@@ -474,7 +466,7 @@ return function render(_ctx, _cache) {
             _createElementVNode("span", _hoisted_37, _toDisplayString(_ctx.summary.version ? "v" + _ctx.summary.version : "版本加载中"), 1 /* TEXT */)
           ]),
           _createElementVNode("span", _hoisted_38, [
-            _cache[30] || (_cache[30] = _createElementVNode("svg", {
+            _cache[29] || (_cache[29] = _createElementVNode("svg", {
               class: "uptime-glyph",
               width: "12",
               height: "12",
@@ -507,7 +499,7 @@ return function render(_ctx, _cache) {
       _createElementVNode("section", _hoisted_40, [
         _createElementVNode("article", _hoisted_41, [
           _createElementVNode("div", _hoisted_42, [
-            _cache[31] || (_cache[31] = _createElementVNode("div", { class: "metric-label" }, "处理器负载", -1 /* CACHED */)),
+            _cache[30] || (_cache[30] = _createElementVNode("div", { class: "metric-label" }, "处理器负载", -1 /* CACHED */)),
             _createElementVNode("span", _hoisted_43, _toDisplayString(_ctx.host.cpu_count || "--") + " 核 CPU", 1 /* TEXT */),
             _createElementVNode("span", {
               class: _normalizeClass(["metric-state", _ctx.cpuStatusClass])
@@ -518,23 +510,23 @@ return function render(_ctx, _cache) {
             _createElementVNode("div", _hoisted_46, [
               _createElementVNode("div", _hoisted_47, [
                 _createElementVNode("strong", null, _toDisplayString(_ctx.formatLoad(_ctx.metric.load_1)), 1 /* TEXT */),
-                _cache[32] || (_cache[32] = _createElementVNode("small", null, "1分", -1 /* CACHED */))
+                _cache[31] || (_cache[31] = _createElementVNode("small", null, "1分", -1 /* CACHED */))
               ]),
-              _cache[35] || (_cache[35] = _createElementVNode("span", {
+              _cache[34] || (_cache[34] = _createElementVNode("span", {
                 class: "load-average-sep",
                 "aria-hidden": "true"
               }, "·", -1 /* CACHED */)),
               _createElementVNode("div", _hoisted_48, [
                 _createElementVNode("strong", null, _toDisplayString(_ctx.formatLoad(_ctx.metric.load_5)), 1 /* TEXT */),
-                _cache[33] || (_cache[33] = _createElementVNode("small", null, "5分", -1 /* CACHED */))
+                _cache[32] || (_cache[32] = _createElementVNode("small", null, "5分", -1 /* CACHED */))
               ]),
-              _cache[36] || (_cache[36] = _createElementVNode("span", {
+              _cache[35] || (_cache[35] = _createElementVNode("span", {
                 class: "load-average-sep",
                 "aria-hidden": "true"
               }, "·", -1 /* CACHED */)),
               _createElementVNode("div", _hoisted_49, [
                 _createElementVNode("strong", null, _toDisplayString(_ctx.formatLoad(_ctx.metric.load_15)), 1 /* TEXT */),
-                _cache[34] || (_cache[34] = _createElementVNode("small", null, "15分", -1 /* CACHED */))
+                _cache[33] || (_cache[33] = _createElementVNode("small", null, "15分", -1 /* CACHED */))
               ])
             ])
           ]),
@@ -551,11 +543,11 @@ return function render(_ctx, _cache) {
               style: _normalizeStyle({ width: _ctx.clampPercent(_ctx.metric.cpu_percent) })
             }, null, 4 /* STYLE */)
           ], 8 /* PROPS */, _hoisted_50),
-          _cache[37] || (_cache[37] = _createElementVNode("div", { class: "metric-foot" }, "当前整体 CPU 占用", -1 /* CACHED */))
+          _cache[36] || (_cache[36] = _createElementVNode("div", { class: "metric-foot" }, "当前整体 CPU 占用", -1 /* CACHED */))
         ]),
         _createElementVNode("article", _hoisted_51, [
           _createElementVNode("div", _hoisted_52, [
-            _cache[38] || (_cache[38] = _createElementVNode("div", { class: "metric-label" }, "内存使用情况", -1 /* CACHED */)),
+            _cache[37] || (_cache[37] = _createElementVNode("div", { class: "metric-label" }, "内存使用情况", -1 /* CACHED */)),
             _createElementVNode("span", {
               class: _normalizeClass(["metric-state", _ctx.statusClass(_ctx.metric.memory_percent)])
             }, _toDisplayString(_ctx.statusLabel(_ctx.metric.memory_percent)), 3 /* TEXT, CLASS */)
@@ -563,8 +555,8 @@ return function render(_ctx, _cache) {
           _createElementVNode("div", _hoisted_53, [
             _createElementVNode("div", _hoisted_54, _toDisplayString(_ctx.formatPercent(_ctx.metric.memory_percent)), 1 /* TEXT */),
             _createElementVNode("div", _hoisted_55, [
-              _createElementVNode("strong", null, _toDisplayString(_ctx.formatBytes(_ctx.host.memory_used)), 1 /* TEXT */),
-              _createElementVNode("span", null, "/ " + _toDisplayString(_ctx.formatBytes(_ctx.host.memory_total)), 1 /* TEXT */)
+              _createElementVNode("strong", null, _toDisplayString(_ctx.formatGB(_ctx.host.memory_used, 1)), 1 /* TEXT */),
+              _createElementVNode("span", null, "/ " + _toDisplayString(_ctx.formatGB(_ctx.host.memory_total, 1)), 1 /* TEXT */)
             ])
           ]),
           _createElementVNode("div", {
@@ -580,11 +572,11 @@ return function render(_ctx, _cache) {
               style: _normalizeStyle({ width: _ctx.clampPercent(_ctx.metric.memory_percent) })
             }, null, 4 /* STYLE */)
           ], 8 /* PROPS */, _hoisted_56),
-          _createElementVNode("div", _hoisted_57, "当前可用 " + _toDisplayString(_ctx.formatBytes(_ctx.host.memory_available)), 1 /* TEXT */)
+          _createElementVNode("div", _hoisted_57, "当前可用 " + _toDisplayString(_ctx.formatGB(_ctx.host.memory_available, 1)), 1 /* TEXT */)
         ]),
         _createElementVNode("article", _hoisted_58, [
           _createElementVNode("div", _hoisted_59, [
-            _cache[39] || (_cache[39] = _createElementVNode("div", { class: "metric-label" }, "系统盘使用情况", -1 /* CACHED */)),
+            _cache[38] || (_cache[38] = _createElementVNode("div", { class: "metric-label" }, "系统盘使用情况", -1 /* CACHED */)),
             _createElementVNode("span", {
               class: _normalizeClass(["metric-state", _ctx.statusClass(_ctx.metric.disk_percent)])
             }, _toDisplayString(_ctx.statusLabel(_ctx.metric.disk_percent)), 3 /* TEXT, CLASS */)
@@ -592,8 +584,8 @@ return function render(_ctx, _cache) {
           _createElementVNode("div", _hoisted_60, [
             _createElementVNode("div", _hoisted_61, _toDisplayString(_ctx.formatPercent(_ctx.metric.disk_percent)), 1 /* TEXT */),
             _createElementVNode("div", _hoisted_62, [
-              _createElementVNode("strong", null, _toDisplayString(_ctx.formatBytes(_ctx.host.disk_used)), 1 /* TEXT */),
-              _createElementVNode("span", null, "/ " + _toDisplayString(_ctx.formatBytes(_ctx.host.disk_total)), 1 /* TEXT */)
+              _createElementVNode("strong", null, _toDisplayString(_ctx.formatGB(_ctx.host.disk_used, 1)), 1 /* TEXT */),
+              _createElementVNode("span", null, "/ " + _toDisplayString(_ctx.formatGB(_ctx.host.disk_total, 1)), 1 /* TEXT */)
             ])
           ]),
           _createElementVNode("div", {
@@ -609,11 +601,11 @@ return function render(_ctx, _cache) {
               style: _normalizeStyle({ width: _ctx.clampPercent(_ctx.metric.disk_percent) })
             }, null, 4 /* STYLE */)
           ], 8 /* PROPS */, _hoisted_63),
-          _createElementVNode("div", _hoisted_64, "剩余空间 " + _toDisplayString(_ctx.formatBytes(_ctx.host.disk_free)), 1 /* TEXT */)
+          _createElementVNode("div", _hoisted_64, "剩余空间 " + _toDisplayString(_ctx.formatGB(_ctx.host.disk_free, 1)), 1 /* TEXT */)
         ]),
         _createElementVNode("article", _hoisted_65, [
           _createElementVNode("div", _hoisted_66, [
-            _cache[40] || (_cache[40] = _createElementVNode("div", { class: "metric-label" }, "活动告警", -1 /* CACHED */)),
+            _cache[39] || (_cache[39] = _createElementVNode("div", { class: "metric-label" }, "活动告警", -1 /* CACHED */)),
             _createElementVNode("span", {
               class: _normalizeClass(["alert-summary", { error: _ctx.alerts.length > 0 }])
             }, _toDisplayString(_ctx.alerts.length ? "需要关注" : "当前无异常"), 3 /* TEXT, CLASS */)
@@ -639,7 +631,7 @@ return function render(_ctx, _cache) {
       ]),
       _createElementVNode("section", _hoisted_71, [
         _createElementVNode("div", _hoisted_72, [
-          _cache[41] || (_cache[41] = _createElementVNode("div", null, [
+          _cache[40] || (_cache[40] = _createElementVNode("div", null, [
             _createElementVNode("div", { class: "eyebrow" }, "RESOURCE TREND"),
             _createElementVNode("h2", { id: "trend-title" }, "资源趋势")
           ], -1 /* CACHED */)),
@@ -658,10 +650,10 @@ return function render(_ctx, _cache) {
         _createElementVNode("div", _hoisted_75, [
           _createElementVNode("span", null, [
             _createElementVNode("strong", null, _toDisplayString(_ctx.history.length), 1 /* TEXT */),
-            _cache[42] || (_cache[42] = _createTextVNode(" 个采样点"))
+            _cache[41] || (_cache[41] = _createTextVNode(" 个采样点"))
           ]),
-          _cache[43] || (_cache[43] = _createElementVNode("span", null, "每 60 秒采集一次", -1 /* CACHED */)),
-          _cache[44] || (_cache[44] = _createElementVNode("span", { class: "trend-legend" }, [
+          _cache[42] || (_cache[42] = _createElementVNode("span", null, "每 60 秒采集一次", -1 /* CACHED */)),
+          _cache[43] || (_cache[43] = _createElementVNode("span", { class: "trend-legend" }, [
             _createElementVNode("i", { class: "cpu" }),
             _createTextVNode("CPU "),
             _createElementVNode("i", { class: "memory" }),
@@ -693,10 +685,10 @@ return function render(_ctx, _cache) {
           ? (_openBlock(), _createElementBlock("div", {
               key: 1,
               class: "svg-chart-shell",
-              onMousemove: _cache[16] || (_cache[16] = (...args) => (_ctx.updateTrendHover && _ctx.updateTrendHover(...args))),
-              onMouseleave: _cache[17] || (_cache[17] = (...args) => (_ctx.clearTrendHover && _ctx.clearTrendHover(...args)))
+              onMousemove: _cache[15] || (_cache[15] = (...args) => (_ctx.updateTrendHover && _ctx.updateTrendHover(...args))),
+              onMouseleave: _cache[16] || (_cache[16] = (...args) => (_ctx.clearTrendHover && _ctx.clearTrendHover(...args)))
             }, [
-              _cache[49] || (_cache[49] = _createElementVNode("div", { class: "chart-y-axis" }, [
+              _cache[48] || (_cache[48] = _createElementVNode("div", { class: "chart-y-axis" }, [
                 _createElementVNode("span", null, "100%"),
                 _createElementVNode("span", null, "75%"),
                 _createElementVNode("span", null, "50%"),
@@ -704,7 +696,7 @@ return function render(_ctx, _cache) {
                 _createElementVNode("span", null, "0%")
               ], -1 /* CACHED */)),
               (_openBlock(), _createElementBlock("svg", _hoisted_78, [
-                _cache[45] || (_cache[45] = _createStaticVNode("<g class=\"trend-grid\"><line x1=\"0\" y1=\"0\" x2=\"1000\" y2=\"0\"></line><line x1=\"0\" y1=\"65\" x2=\"1000\" y2=\"65\"></line><line x1=\"0\" y1=\"130\" x2=\"1000\" y2=\"130\"></line><line x1=\"0\" y1=\"195\" x2=\"1000\" y2=\"195\"></line><line x1=\"0\" y1=\"260\" x2=\"1000\" y2=\"260\"></line></g>", 1)),
+                _cache[44] || (_cache[44] = _createStaticVNode("<g class=\"trend-grid\"><line x1=\"0\" y1=\"0\" x2=\"1000\" y2=\"0\"></line><line x1=\"0\" y1=\"65\" x2=\"1000\" y2=\"65\"></line><line x1=\"0\" y1=\"130\" x2=\"1000\" y2=\"130\"></line><line x1=\"0\" y1=\"195\" x2=\"1000\" y2=\"195\"></line><line x1=\"0\" y1=\"260\" x2=\"1000\" y2=\"260\"></line></g>", 1)),
                 _createElementVNode("polyline", {
                   points: _ctx.chartPoints('cpu_percent'),
                   class: "trend-line cpu"
@@ -756,15 +748,15 @@ return function render(_ctx, _cache) {
                   }, [
                     _createElementVNode("strong", null, _toDisplayString(_ctx.formatHoverTime(_ctx.trendHover.ts)), 1 /* TEXT */),
                     _createElementVNode("span", null, [
-                      _cache[46] || (_cache[46] = _createElementVNode("i", { class: "cpu" }, null, -1 /* CACHED */)),
+                      _cache[45] || (_cache[45] = _createElementVNode("i", { class: "cpu" }, null, -1 /* CACHED */)),
                       _createTextVNode("CPU " + _toDisplayString(_ctx.formatPercent(_ctx.trendHover.cpu)), 1 /* TEXT */)
                     ]),
                     _createElementVNode("span", null, [
-                      _cache[47] || (_cache[47] = _createElementVNode("i", { class: "memory" }, null, -1 /* CACHED */)),
+                      _cache[46] || (_cache[46] = _createElementVNode("i", { class: "memory" }, null, -1 /* CACHED */)),
                       _createTextVNode("内存 " + _toDisplayString(_ctx.formatPercent(_ctx.trendHover.memory)), 1 /* TEXT */)
                     ]),
                     _createElementVNode("span", null, [
-                      _cache[48] || (_cache[48] = _createElementVNode("i", { class: "disk" }, null, -1 /* CACHED */)),
+                      _cache[47] || (_cache[47] = _createElementVNode("i", { class: "disk" }, null, -1 /* CACHED */)),
                       _createTextVNode("磁盘 " + _toDisplayString(_ctx.formatPercent(_ctx.trendHover.disk)), 1 /* TEXT */)
                     ])
                   ], 4 /* STYLE */))
@@ -779,7 +771,7 @@ return function render(_ctx, _cache) {
       ]),
       _createElementVNode("section", _hoisted_90, [
         _createElementVNode("article", _hoisted_91, [
-          _cache[50] || (_cache[50] = _createElementVNode("div", { class: "panel-head compact" }, [
+          _cache[49] || (_cache[49] = _createElementVNode("div", { class: "panel-head compact" }, [
             _createElementVNode("div", null, [
               _createElementVNode("div", { class: "eyebrow" }, "SERVICE HEALTH"),
               _createElementVNode("h2", { id: "services-title" }, "服务状态")
@@ -827,7 +819,7 @@ return function render(_ctx, _cache) {
         ]),
         _createElementVNode("article", _hoisted_97, [
           _createElementVNode("div", _hoisted_98, [
-            _cache[51] || (_cache[51] = _createElementVNode("div", null, [
+            _cache[50] || (_cache[50] = _createElementVNode("div", null, [
               _createElementVNode("div", { class: "eyebrow" }, "ACTIVE ALERTS"),
               _createElementVNode("h2", { id: "alerts-title" }, "当前告警")
             ], -1 /* CACHED */)),
@@ -836,7 +828,7 @@ return function render(_ctx, _cache) {
                   key: 0,
                   type: "button",
                   class: "text-button",
-                  onClick: _cache[18] || (_cache[18] = (...args) => (_ctx.runMaintenance && _ctx.runMaintenance(...args)))
+                  onClick: _cache[17] || (_cache[17] = (...args) => (_ctx.runMaintenance && _ctx.runMaintenance(...args)))
                 }, "立即备份"))
               : _createCommentVNode("v-if", true)
           ]),
@@ -846,7 +838,7 @@ return function render(_ctx, _cache) {
                 key: alert.id,
                 class: "alert-row"
               }, [
-                _cache[52] || (_cache[52] = _createElementVNode("span", { class: "alert-icon" }, "!", -1 /* CACHED */)),
+                _cache[51] || (_cache[51] = _createElementVNode("span", { class: "alert-icon" }, "!", -1 /* CACHED */)),
                 _createElementVNode("div", null, [
                   _createElementVNode("strong", null, _toDisplayString(alert.message), 1 /* TEXT */),
                   _createElementVNode("small", null, _toDisplayString(_ctx.formatTime(alert.created_at)), 1 /* TEXT */)
@@ -854,7 +846,7 @@ return function render(_ctx, _cache) {
               ]))
             }), 128 /* KEYED_FRAGMENT */)),
             (!_ctx.alerts.length)
-              ? (_openBlock(), _createElementBlock("div", _hoisted_100, _cache[53] || (_cache[53] = [
+              ? (_openBlock(), _createElementBlock("div", _hoisted_100, _cache[52] || (_cache[52] = [
                   _createElementVNode("span", null, "✓", -1 /* CACHED */),
                   _createTextVNode(" 当前没有活动告警 ")
                 ])))

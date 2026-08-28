@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
     <script src="/theme.js"></script>
+    <script src="/session.js"></script>
     <title>LightOps · 轻量运维控制台</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
@@ -64,7 +65,6 @@
               </button>
             </div>
           </div>
-          <button v-if="isAdmin" type="button" class="ghost-button" @click="saveToken">管理令牌</button>
           <button
             type="button"
             class="primary-button"
@@ -120,8 +120,8 @@
             <p class="host-summary">
               <span>{{ host.cloud_provider || "云服务器" }}</span>
               <span>{{ host.cpu_count || "--" }} 核 CPU</span>
-              <span>{{ formatHardwareCapacity(host.memory_total) }} 内存</span>
-              <span>{{ formatHardwareCapacity(host.disk_total) }} 系统盘</span>
+              <span>{{ formatGB(host.memory_total, 0) }} 内存</span>
+              <span>{{ formatGB(host.disk_total, 0) }} 系统盘</span>
               <span>{{ host.os_name || "Linux" }}</span>
             </p>
           </div>
@@ -237,8 +237,8 @@
             <div class="metric-body">
               <div class="metric-value">{{ formatPercent(metric.memory_percent) }}</div>
               <div class="capacity-details">
-                <strong>{{ formatBytes(host.memory_used) }}</strong>
-                <span>/ {{ formatBytes(host.memory_total) }}</span>
+                <strong>{{ formatGB(host.memory_used, 1) }}</strong>
+                <span>/ {{ formatGB(host.memory_total, 1) }}</span>
               </div>
             </div>
             <div
@@ -252,7 +252,7 @@
             >
               <span :style="{ width: clampPercent(metric.memory_percent) }"></span>
             </div>
-            <div class="metric-foot">当前可用 {{ formatBytes(host.memory_available) }}</div>
+            <div class="metric-foot">当前可用 {{ formatGB(host.memory_available, 1) }}</div>
           </article>
           <article class="metric-card">
             <div class="metric-card-head">
@@ -262,8 +262,8 @@
             <div class="metric-body">
               <div class="metric-value">{{ formatPercent(metric.disk_percent) }}</div>
               <div class="capacity-details">
-                <strong>{{ formatBytes(host.disk_used) }}</strong>
-                <span>/ {{ formatBytes(host.disk_total) }}</span>
+                <strong>{{ formatGB(host.disk_used, 1) }}</strong>
+                <span>/ {{ formatGB(host.disk_total, 1) }}</span>
               </div>
             </div>
             <div
@@ -277,7 +277,7 @@
             >
               <span :style="{ width: clampPercent(metric.disk_percent) }"></span>
             </div>
-            <div class="metric-foot">剩余空间 {{ formatBytes(host.disk_free) }}</div>
+            <div class="metric-foot">剩余空间 {{ formatGB(host.disk_free, 1) }}</div>
           </article>
           <article class="metric-card">
             <div class="metric-card-head">

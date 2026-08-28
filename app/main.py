@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import platform
-import secrets
 import socket
 import time
 from contextlib import asynccontextmanager
@@ -65,14 +64,10 @@ OS_NAME = operating_system_name()
 def require_admin_access(
     authorization: Annotated[Optional[str], Header()] = None,
 ) -> None:
-    """管理操作的门禁：持有管理令牌或管理员（admin）用户会话才可通行。
+    """管理操作的门禁：仅管理员（admin）用户会话可通行，访客一律 403。
 
-    访客（guest）会话一律 403。管理令牌是全局凭证，无法区分实际使用者；
-    所以"Guest 无管理功能"由本依赖拒绝 guest 会话 + 前端隐藏入口双重保障。
+    "Guest 无管理功能"由本依赖拒绝 guest 会话 + 前端隐藏入口双重保障。
     """
-    expected = f"Bearer {settings.api_token}"
-    if authorization and secrets.compare_digest(authorization, expected):
-        return
     token = _bearer_token(authorization)
     if not token:
         raise HTTPException(

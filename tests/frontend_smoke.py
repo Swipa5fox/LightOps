@@ -77,6 +77,7 @@ script = (STATIC / "app.js").read_text(encoding="utf-8")
 render = (STATIC / "render.js").read_text(encoding="utf-8")
 login_html = (STATIC / "login.html").read_text(encoding="utf-8")
 login_script = (STATIC / "login.js").read_text(encoding="utf-8")
+session_script = (STATIC / "session.js").read_text(encoding="utf-8")
 version_source = (ROOT / "app" / "__init__.py").read_text(encoding="utf-8")
 version_match = re.search(r'^__version__\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?)"$', version_source, re.MULTILINE)
 assert version_match, "application version source is missing"
@@ -120,7 +121,11 @@ for reference in login_parser.references:
         assert local_path.is_file(), f"missing login resource: {reference}"
 assert "/api/login" in login_script
 assert "/api/auth/me" in login_script
-assert "SESSION_KEY" in login_script and "lightops_session" in login_script
+# 会话存储由 session.js 独占，登录页与面板都走它，避免两份实现漂移。
+assert "lightops_session" in session_script
+assert 'window.LightOpsSession = { read: read, write: write }' in session_script
+assert "/session.js" in login_html and "/session.js" in index
+assert "sessionStorage" not in login_script, "login.js must use the shared session module"
 assert "placeholder" not in login_html, "login inputs must not show placeholder hints"
 assert "window.location.replace" in login_script, "login flow must redirect after auth"
 
@@ -138,8 +143,8 @@ dangerous_patterns = {
 for label, pattern in dangerous_patterns.items():
     assert not re.search(pattern, script), f"dangerous DOM/code operation found: {label}"
 
-assert "localStorage.setItem" not in script, "tokens must not persist in localStorage"
-assert "sessionStorage.setItem" in script, "session-only token storage is required"
+assert "localStorage" not in script, "app.js must not touch localStorage; only theme.js owns it"
+assert "lightops_session" not in script, "the session token must be read through session.js"
 assert 'class="user-menu"' in index, "user menu dropdown must exist in the topbar"
 assert "openPasswordModal" in script and "closePasswordModal" in script
 assert 'window.location.replace("/login.html")' in script, "unauthenticated visits must redirect to the login page"
@@ -150,10 +155,12 @@ assert 'v-if="isAdmin"' in index, "admin-only controls must be hidden for guest 
 assert "user-menu-role" in index and "role-guest" in index, "user menu must expose the account role badge"
 assert 'me.role === "admin" ? "admin" : "guest"' in script, "auth/me role must be normalized in the client"
 assert "REQUEST_TIMEOUT_MS" in script and "AbortController" in script
-assert "handleAuthError" in script and "error.status !== 401" in script
 assert "refreshRequested" in script, "range changes during refresh must be replayed"
 assert "searchWeather" in script, "weather must support place search"
-assert "WEATHER_PLACE_KEY" in script and "sessionStorage" in script
+assert "WEATHER_PLACE_KEY" in script
+# 管理令牌是第二套鉴权通道，已下线；管理操作只认 admin 会话。
+assert "TOKEN_KEY" not in script and "saveToken" not in script
+assert "ensureToken" not in script and "handleAuthError" not in script
 assert 'class="weather-emblem"' in index
 assert 'aria-label="每日天气"' in index
 assert "/icons/weather-" in index, "weather icons must be referenced from /icons/weather-<code>.svg"
@@ -201,5 +208,6 @@ node = shutil.which("node")
 if node:
     subprocess.run([node, "--check", str(STATIC / "app.js")], check=True)
     subprocess.run([node, "--check", str(STATIC / "render.js")], check=True)
+    subprocess.run([node, "--check", str(STATIC / "session.js")], check=True)
 
 print("LightOps frontend smoke test passed")

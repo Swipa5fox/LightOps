@@ -9,8 +9,6 @@ from pathlib import Path
 temp_dir = tempfile.TemporaryDirectory()
 root = Path(temp_dir.name)
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-token = "test-token-" + ("x" * 54)
-os.environ["LIGHTOPS_API_TOKEN"] = token
 os.environ["LIGHTOPS_DB_PATH"] = str(root / "lightops.db")
 os.environ["LIGHTOPS_BACKUP_DIR"] = str(root / "backups")
 os.environ["LIGHTOPS_SERVICES"] = "nginx,mysqld,redis"
@@ -92,11 +90,6 @@ with TestClient(app) as client:
     assert client.get("/api/audit").status_code == 401
     assert client.post("/api/maintenance/run").status_code == 401
     assert client.post("/api/services/nginx/restart").status_code == 401
-    headers = {"Authorization": "Bearer " + token}
-    audit = client.get(
-        "/api/audit", headers=headers
-    )
-    assert audit.status_code == 200, audit.text
 
     # 角色权限：Guest 只读，管理操作一律 403；Admin 会话拥有管理权限。
     guest_login = client.post(
@@ -123,15 +116,15 @@ with TestClient(app) as client:
     admin_me = client.get("/api/auth/me", headers=admin_headers)
     assert admin_me.status_code == 200
     assert admin_me.json()["role"] == "admin"
-    assert client.get("/api/audit", headers=admin_headers).status_code == 200
+
+    audit = client.get("/api/audit", headers=admin_headers)
+    assert audit.status_code == 200, audit.text
+    # 白名单外服务即使持有 admin 会话也被拒。
     assert client.post(
         "/api/services/not-allowed/restart", headers=admin_headers
-    ).status_code == 403  # 白名单外服务仍被拒
+    ).status_code == 403
 
-    rejected = client.post("/api/services/not-allowed/restart", headers=headers)
-    assert rejected.status_code == 403, rejected.text
-
-    maintenance = client.post("/api/maintenance/run", headers=headers)
+    maintenance = client.post("/api/maintenance/run", headers=admin_headers)
     assert maintenance.status_code == 200, maintenance.text
     assert Path(maintenance.json()["backup"]).is_file()
 
