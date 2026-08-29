@@ -25,10 +25,9 @@ import time
 from pathlib import Path
 from typing import Any
 
-OUTPUT_FILE = Path(
-    os.getenv("LIGHTOPS_OWNERSHIP_FILE", "/var/lib/lightops/ownership.json")
-)
-_SS = os.getenv("LIGHTOPS_SS_PATH", "/usr/sbin/ss")
+# 路径是常量：app/ownership.py 硬编码读同一个文件，一旦可配置就会静默错位。
+OUTPUT_FILE = Path("/var/lib/lightops/ownership.json")
+_SS = "/usr/sbin/ss"
 _RUN_ENV = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C"}
 
 _SERVICE_SUFFIX = ".service"
@@ -254,9 +253,7 @@ def build_snapshot() -> tuple[
 
 # 连接是瞬时的（agent2 周期上报、fastcgi 按请求建连），把观测到的边持久化
 # 到状态文件并带 TTL 衰减，标签才不会在采样间隙消失。
-_STATE_FILE = Path(
-    os.getenv("LIGHTOPS_OWNERSHIP_STATE_FILE", "/var/lib/lightops/ownership_state.json")
-)
+_STATE_FILE = Path("/var/lib/lightops/ownership_state.json")
 _EDGE_TTL_SECONDS = 600
 
 

@@ -2,7 +2,6 @@
   "use strict";
 
   var createApp = window.Vue.createApp;
-  var WEATHER_PLACE_KEY = "lightops_weather_place";
   var DEFAULT_WEATHER_PLACE = "广州-黄埔区";
   var REQUEST_TIMEOUT_MS = 10000;
   var WEATHER_REFRESH_MS = 30 * 60 * 1000;
@@ -12,31 +11,26 @@
   var weatherTimer = null;
   var clockTimer = null;
   var session = window.LightOpsSession;
+  var weatherPlaceStore = session.weatherPlace;
+
+  // WMO 天气码 -> 和风图标码（日间档）。
+  var QWEATHER_CODES = {
+    0: 100, 1: 101, 2: 102, 3: 103,
+    45: 501, 48: 501,
+    51: 300, 53: 300, 55: 301, 56: 306, 57: 306,
+    61: 305, 63: 306, 65: 308, 66: 312, 67: 312,
+    71: 400, 73: 401, 75: 402, 77: 407,
+    80: 305, 81: 306, 82: 308,
+    85: 400, 86: 401,
+    95: 302, 96: 302, 99: 302
+  };
+  // 只有晴 / 多云这几档有昼夜两套图标，夜间码 = 日间码 + 50。
+  var QWEATHER_NIGHT_CODES = { 100: 150, 101: 151, 102: 152, 103: 153 };
 
   // Chart geometry: 0-100% maps to y in [0, 260] on the 1000x260 viewBox.
   function chartY(value) {
     var safe = Math.max(0, Math.min(100, Number(value) || 0));
     return 260 - safe * 2.6;
-  }
-
-  function readWeatherPlace() {
-    try {
-      return window.sessionStorage.getItem(WEATHER_PLACE_KEY) || "";
-    } catch (error) {
-      return "";
-    }
-  }
-
-  function writeWeatherPlace(place) {
-    try {
-      if (place) {
-        window.sessionStorage.setItem(WEATHER_PLACE_KEY, place);
-      } else {
-        window.sessionStorage.removeItem(WEATHER_PLACE_KEY);
-      }
-    } catch (error) {
-      // Weather still works when session storage is unavailable.
-    }
   }
 
   createApp({
@@ -397,7 +391,7 @@
         }
       },
       initializeWeather: function () {
-        this.weatherPlace = readWeatherPlace() || DEFAULT_WEATHER_PLACE;
+        this.weatherPlace = weatherPlaceStore.read() || DEFAULT_WEATHER_PLACE;
         this.refreshWeather();
       },
       pickDistrict: async function (candidate) {
@@ -407,11 +401,8 @@
         this.weatherLoading = true;
         this.weatherError = "";
         try {
-          var lat = Number(candidate.latitude);
-          var lon = Number(candidate.longitude);
-          if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-            throw new Error("坐标无效");
-          }
+          var lat = candidate.latitude;
+          var lon = candidate.longitude;
           // The lat/lon endpoint returns no district candidates; cache the
           // city-wide list so the district picker stays visible after refining.
           var previousCandidates = this.weather && Array.isArray(this.weather.candidates)
@@ -446,7 +437,7 @@
           this.weatherError = "请输入城市名称";
           return;
         }
-        writeWeatherPlace(place);
+        weatherPlaceStore.write(place);
         this.refreshWeather();
       },
       refreshWeather: async function () {
@@ -487,30 +478,8 @@
         if (!Number.isFinite(code)) {
           return day ? 100 : 150;
         }
-        if (code === 0) return day ? 100 : 150;
-        if (code === 1) return day ? 101 : 151;
-        if (code === 2) return day ? 102 : 152;
-        if (code === 3) return day ? 103 : 153;
-        if (code === 45 || code === 48) return day ? 501 : 501;
-        if (code === 51 || code === 53) return 300;
-        if (code === 55) return 301;
-        if (code === 56 || code === 57) return 306;
-        if (code === 61) return 305;
-        if (code === 63) return 306;
-        if (code === 65) return 308;
-        if (code === 66 || code === 67) return 312;
-        if (code === 71) return 400;
-        if (code === 73) return 401;
-        if (code === 75) return 402;
-        if (code === 77) return 407;
-        if (code === 80) return 305;
-        if (code === 81) return 306;
-        if (code === 82) return 308;
-        if (code === 85) return 400;
-        if (code === 86) return 401;
-        if (code === 95) return 302;
-        if (code === 96 || code === 99) return 302;
-        return day ? 103 : 153;
+        var dayCode = QWEATHER_CODES[code] || 103;
+        return day ? dayCode : (QWEATHER_NIGHT_CODES[dayCode] || dayCode);
       },
       formatTemperature: function (value) {
         return Number.isFinite(Number(value)) ? Math.round(Number(value)) + "°" : "--";
@@ -631,26 +600,25 @@
       clearTrendHover: function () {
         this.trendHover = null;
       },
-      formatTrendTime: function (value) {
+      formatDate: function (value, options) {
         return value
-          ? new Date(value).toLocaleTimeString("zh-CN", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false
-            })
+          ? new Date(value).toLocaleString(
+              "zh-CN",
+              Object.assign({ hour12: false }, options)
+            )
           : "--";
       },
+      formatTrendTime: function (value) {
+        return this.formatDate(value, { hour: "2-digit", minute: "2-digit" });
+      },
       formatHoverTime: function (value) {
-        return value
-          ? new Date(value).toLocaleString("zh-CN", {
-              month: "2-digit",
-              day: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-              hour12: false
-            })
-          : "--";
+        return this.formatDate(value, {
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit"
+        });
       },
       restartService: async function (service) {
         if (!window.confirm("确认重启服务 " + service + "？")) {
@@ -721,7 +689,7 @@
         return (bytes / 1073741824).toFixed(decimals) + " GB";
       },
       formatTime: function (value) {
-        return value ? new Date(value).toLocaleString("zh-CN", { hour12: false }) : "--";
+        return this.formatDate(value);
       },
       formatCurrentDate: function () {
         var now = new Date();

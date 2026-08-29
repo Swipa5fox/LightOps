@@ -79,8 +79,13 @@ jobs:
       - name: 前端渲染构建与语法检查
         run: |
           node tools/generate-render.mjs
+          # 生成物已入仓：若与 index.html 不同步则阻断，避免线上跑旧模板
+          git diff --exit-code app/static/render.js
           node --check app/static/render.js
           node --check app/static/app.js
+          node --check app/static/session.js
+          node --check app/static/login.js
+          node --check app/static/theme.js
           # CSP 底线：render.js 不得出现 eval / new Function
           ! grep -qE "new Function|eval\(" app/static/render.js
 

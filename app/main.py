@@ -283,7 +283,7 @@ def summary() -> dict:
     memory = psutil.virtual_memory()
     disk = psutil.disk_usage("/")
     services = db.latest_services()
-    # 使用方标注是"现在"的关系而非历史采样，实时计算（ownership 内部带 60s 缓存）。
+    # 使用方标注是"现在"的关系而非历史采样，实时计算（ownership 内部带 30s 缓存）。
     for item in services:
         item["used_by"] = ownership.used_by(item["service"])
     return {

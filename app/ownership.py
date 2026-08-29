@@ -25,7 +25,8 @@ from .settings import settings
 logger = logging.getLogger("lightops.ownership")
 
 _OWNERSHIP_FILE = Path("/var/lib/lightops/ownership.json")
-_MAX_AGE_SECONDS = 180  # 3 collect intervals
+# 探针由 lightops-inspect.timer 按采集间隔驱动，陈旧窗口跟着间隔走。
+_MAX_AGE_SECONDS = settings.collect_interval_seconds * 3
 _INPROCESS_TTL_SECONDS = 30
 
 _cache: dict[str, Any] = {"data": {}, "at": 0.0}

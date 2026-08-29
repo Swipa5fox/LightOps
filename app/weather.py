@@ -106,15 +106,11 @@ _DISTRICTS: dict[str, list[tuple[str, float, float]]] = {
 }
 
 
-def _district_to_city_index() -> dict[str, str]:
-    return {
-        district: city
-        for city, items in _DISTRICTS.items()
-        for district, _lat, _lon in items
-    }
-
-
-_DISTRICT_INDEX: dict[str, str] = _district_to_city_index()
+_DISTRICT_INDEX: dict[str, str] = {
+    district: city
+    for city, items in _DISTRICTS.items()
+    for district, _lat, _lon in items
+}
 
 
 _FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
@@ -176,8 +172,20 @@ def _first(values: Any) -> Any:
     return values[0] if isinstance(values, list) and values else None
 
 
+def _get_json(url: str, params: dict[str, Any], limit: int, what: str) -> dict[str, Any]:
+    request = Request(
+        f"{url}?{urlencode(params)}",
+        headers={"User-Agent": f"LightOps/{__version__} weather-widget"},
+    )
+    with urlopen(request, timeout=settings.weather_request_timeout_seconds) as response:
+        if response.status != 200:
+            raise RuntimeError(f"{what} returned HTTP {response.status}")
+        return json.loads(response.read(limit).decode("utf-8"))
+
+
 def _fetch_remote(latitude: float, longitude: float) -> dict[str, Any]:
-    query = urlencode(
+    return _get_json(
+        _FORECAST_URL,
         {
             "latitude": f"{latitude:.2f}",
             "longitude": f"{longitude:.2f}",
@@ -191,16 +199,10 @@ def _fetch_remote(latitude: float, longitude: float) -> dict[str, Any]:
             ),
             "timezone": "auto",
             "forecast_days": "1",
-        }
+        },
+        256_000,
+        "weather provider",
     )
-    request = Request(
-        f"{_FORECAST_URL}?{query}",
-        headers={"User-Agent": f"LightOps/{__version__} weather-widget"},
-    )
-    with urlopen(request, timeout=settings.weather_request_timeout_seconds) as response:
-        if response.status != 200:
-            raise RuntimeError(f"weather provider returned HTTP {response.status}")
-        return json.loads(response.read(256_000).decode("utf-8"))
 
 
 def _normalize(payload: dict[str, Any]) -> dict[str, Any]:
@@ -304,11 +306,6 @@ def _city_district_candidates(city: str) -> list[dict[str, Any]]:
     return [_make_district_candidate(city, item) for item in _DISTRICTS[city]]
 
 
-def _district_only_candidates(district: str) -> list[dict[str, Any]]:
-    city = _DISTRICT_INDEX[district]
-    return _city_district_candidates(city)
-
-
 def _district_candidates(name: str) -> list[dict[str, Any]] | None:
     """根据精选的城市/区级表解析自由文本的地名查询。
 
@@ -328,7 +325,7 @@ def _district_candidates(name: str) -> list[dict[str, Any]] | None:
     if cleaned in _DISTRICTS:
         return _city_district_candidates(cleaned)
     if cleaned in _DISTRICT_INDEX:
-        return _district_only_candidates(cleaned)
+        return _city_district_candidates(_DISTRICT_INDEX[cleaned])
     # 带行政后缀的城市名，例如 "广州市" -> "广州"。
     stripped = _strip_city_suffix(cleaned)
     if stripped in _DISTRICTS:
@@ -365,22 +362,17 @@ def _district_candidates(name: str) -> list[dict[str, Any]] | None:
 
 def _open_meteo_geocode(name: str, count: int) -> list[dict[str, Any]]:
     """对地名调用 Open-Meteo 地理编码，并规范化返回结果。"""
-    query = urlencode(
+    payload = _get_json(
+        _GEOCODING_URL,
         {
             "name": name,
             "count": str(max(1, min(count, 20))),
             "language": "zh",
             "format": "json",
-        }
+        },
+        64_000,
+        "geocoding",
     )
-    request = Request(
-        f"{_GEOCODING_URL}?{query}",
-        headers={"User-Agent": f"LightOps/{__version__} weather-widget"},
-    )
-    with urlopen(request, timeout=settings.weather_request_timeout_seconds) as response:
-        if response.status != 200:
-            raise RuntimeError(f"geocoding returned HTTP {response.status}")
-        payload = json.loads(response.read(64_000).decode("utf-8"))
     candidates: list[dict[str, Any]] = []
     for item in payload.get("results") or []:
         latitude = _safe_number(item.get("latitude"))

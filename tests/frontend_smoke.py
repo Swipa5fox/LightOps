@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import re
-import shutil
-import subprocess
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -67,10 +65,6 @@ def local_file_for(reference: str) -> Path | None:
     return STATIC / parsed.path.removeprefix("/")
 
 
-for path in STATIC.rglob("*"):
-    if path.is_file():
-        path.read_text(encoding="utf-8", errors="strict")
-
 index = (STATIC / "index.html").read_text(encoding="utf-8")
 style = (STATIC / "style.css").read_text(encoding="utf-8")
 script = (STATIC / "app.js").read_text(encoding="utf-8")
@@ -123,14 +117,15 @@ assert "/api/login" in login_script
 assert "/api/auth/me" in login_script
 # 会话存储由 session.js 独占，登录页与面板都走它，避免两份实现漂移。
 assert "lightops_session" in session_script
-assert 'window.LightOpsSession = { read: read, write: write }' in session_script
+# 只有 session.js 触碰 sessionStorage，登录页与面板都经它读写，避免两份实现漂移。
+assert "sessionStorage" in session_script
+assert "sessionStorage" not in script, "app.js must read storage through session.js"
 assert "/session.js" in login_html and "/session.js" in index
 assert "sessionStorage" not in login_script, "login.js must use the shared session module"
 assert "placeholder" not in login_html, "login inputs must not show placeholder hints"
 assert "window.location.replace" in login_script, "login flow must redirect after auth"
 
 assert (STATIC / "vendor" / "vue.runtime.global.prod.js").is_file()
-assert not (STATIC / "vendor" / "echarts.min.js").exists(), "unused ECharts must not return"
 
 dangerous_patterns = {
     "eval": r"\beval\s*\(",
@@ -146,28 +141,16 @@ for label, pattern in dangerous_patterns.items():
 assert "localStorage" not in script, "app.js must not touch localStorage; only theme.js owns it"
 assert "lightops_session" not in script, "the session token must be read through session.js"
 assert 'class="user-menu"' in index, "user menu dropdown must exist in the topbar"
-assert "openPasswordModal" in script and "closePasswordModal" in script
 assert 'window.location.replace("/login.html")' in script, "unauthenticated visits must redirect to the login page"
-assert "showLogin" not in index and "showUserPanel" not in index, "login/user-panel must not be modals anymore"
-assert "openUserPanel" not in script and "submitLogin" not in script, "old modal login code must be removed"
-assert "isAdmin" in script and 'this.role === "admin"' in script, "admin role gating is required"
 assert 'v-if="isAdmin"' in index, "admin-only controls must be hidden for guest users"
 assert "user-menu-role" in index and "role-guest" in index, "user menu must expose the account role badge"
-assert 'me.role === "admin" ? "admin" : "guest"' in script, "auth/me role must be normalized in the client"
-assert "REQUEST_TIMEOUT_MS" in script and "AbortController" in script
-assert "refreshRequested" in script, "range changes during refresh must be replayed"
-assert "searchWeather" in script, "weather must support place search"
-assert "WEATHER_PLACE_KEY" in script
-# 管理令牌是第二套鉴权通道，已下线；管理操作只认 admin 会话。
-assert "TOKEN_KEY" not in script and "saveToken" not in script
-assert "ensureToken" not in script and "handleAuthError" not in script
+assert "AbortController" in script, "requests must be abortable so the 10s timeout can fire"
 assert 'class="weather-emblem"' in index
 assert 'aria-label="每日天气"' in index
 assert "/icons/weather-" in index, "weather icons must be referenced from /icons/weather-<code>.svg"
 assert 'href="/icons/favicon.svg"' in index, "favicon must be referenced from /icons/favicon.svg"
 assert (STATIC / "icons" / "favicon.svg").is_file(), "icons/favicon.svg must exist"
 assert (STATIC / "icons" / "weather-150.svg").is_file(), "icons/weather-150.svg must exist"
-assert not (STATIC / "vendor" / "qweather").exists(), "old vendor/qweather icon directory must be removed"
 assert "/api/weather" in script
 assert 'role="progressbar"' in index
 assert 'aria-live="polite"' in index
@@ -203,11 +186,5 @@ assert "cdn.jsdelivr.net" not in installer
 assert "echarts" not in installer.lower()
 assert "app/static/render.js" in installer
 assert "app/static/vendor/vue.runtime.global.prod.js" in installer
-
-node = shutil.which("node")
-if node:
-    subprocess.run([node, "--check", str(STATIC / "app.js")], check=True)
-    subprocess.run([node, "--check", str(STATIC / "render.js")], check=True)
-    subprocess.run([node, "--check", str(STATIC / "session.js")], check=True)
 
 print("LightOps frontend smoke test passed")

@@ -100,10 +100,10 @@ def utc_now() -> str:
 def connect() -> Iterator[sqlite3.Connection]:
     database = settings.database_path
     database.parent.mkdir(parents=True, exist_ok=True)
+    # timeout=15 即 busy_timeout=15000ms，无需再下 PRAGMA。
     conn = sqlite3.connect(database, timeout=15)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
-    conn.execute("PRAGMA busy_timeout=15000")
     try:
         yield conn
         conn.commit()
@@ -114,8 +114,8 @@ def connect() -> Iterator[sqlite3.Connection]:
 def init_db() -> None:
     with connect() as conn:
         # WAL mode is persisted in the database file header, so setting it once
-        # here is sufficient; per-connection PRAGMAs (foreign_keys, busy_timeout)
-        # are still applied in connect().
+        # here is sufficient; per-connection PRAGMAs (foreign_keys) are still
+        # applied in connect().
         conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(SCHEMA)
         # Migration: add buckets column to existing databases created before
@@ -336,13 +336,7 @@ def latest_services() -> list[dict[str, Any]]:
     for row in rows:
         item = dict(row)
         raw_buckets = item.get("buckets")
-        if raw_buckets:
-            try:
-                item["buckets"] = json.loads(raw_buckets)
-            except json.JSONDecodeError:
-                item["buckets"] = []
-        else:
-            item["buckets"] = []
+        item["buckets"] = json.loads(raw_buckets) if raw_buckets else []
         values.append(item)
     return values
 

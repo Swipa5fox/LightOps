@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import re
 import subprocess
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -28,14 +27,14 @@ _UNIT_FILE_CANDIDATES = (
 _ENV_FILE_PATTERN = re.compile(r"^\s*EnvironmentFile\s*=\s*(\S+)", re.MULTILINE)
 
 
-def _systemctl(*args: str) -> subprocess.CompletedProcess[str]:
+def _systemctl(*args: str, timeout: int = 10) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [settings.systemctl_path, *args],
         capture_output=True,
         text=True,
         encoding="utf-8",
         errors="replace",
-        timeout=10,
+        timeout=timeout,
         check=False,
         env=_RUN_ENV,
     )
@@ -103,7 +102,7 @@ def read_metrics() -> dict[str, Any]:
     load = psutil.getloadavg()
     network = psutil.net_io_counters()
     return {
-        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "ts": db.utc_now(),
         "cpu_percent": round(psutil.cpu_percent(interval=0.2), 2),
         "memory_percent": round(psutil.virtual_memory().percent, 2),
         "disk_percent": round(psutil.disk_usage("/").percent, 2),
@@ -181,20 +180,7 @@ def restart_service(service: str) -> tuple[bool, str]:
     # authorizes this systemctl call instead (50-lightops.rules, rendered by
     # install.sh from the monitored service list).
     try:
-        result = subprocess.run(
-            [
-                settings.systemctl_path,
-                "restart",
-                service,
-            ],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=30,
-            check=False,
-            env=_RUN_ENV,
-        )
+        result = _systemctl("restart", service, timeout=30)
     except (OSError, subprocess.SubprocessError) as exc:
         return False, str(exc)
     detail = (result.stdout.strip() or result.stderr.strip() or "completed")[:1000]
