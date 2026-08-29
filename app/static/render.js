@@ -185,28 +185,32 @@ const _hoisted_91 = {
 const _hoisted_92 = { class: "service-list" }
 const _hoisted_93 = { class: "service-name" }
 const _hoisted_94 = ["title"]
-const _hoisted_95 = ["disabled", "onClick"]
-const _hoisted_96 = {
+const _hoisted_95 = {
+  key: 1,
+  class: "service-owner"
+}
+const _hoisted_96 = ["disabled", "onClick"]
+const _hoisted_97 = {
   key: 0,
   class: "empty-state"
 }
-const _hoisted_97 = {
+const _hoisted_98 = {
   class: "panel",
   "aria-labelledby": "alerts-title"
 }
-const _hoisted_98 = { class: "panel-head compact" }
-const _hoisted_99 = { class: "alert-list" }
-const _hoisted_100 = {
+const _hoisted_99 = { class: "panel-head compact" }
+const _hoisted_100 = { class: "alert-list" }
+const _hoisted_101 = {
   key: 0,
   class: "empty-state success"
 }
-const _hoisted_101 = {
+const _hoisted_102 = {
   class: "footer-brand",
   href: "https://github.com/Swipa5fox/LightOps",
   target: "_blank",
   rel: "noopener noreferrer"
 }
-const _hoisted_102 = { class: "footer-copyright" }
+const _hoisted_103 = { class: "footer-copyright" }
 
 return function render(_ctx, _cache) {
   return (_openBlock(), _createElementBlock(_Fragment, null, [
@@ -796,6 +800,9 @@ return function render(_ctx, _cache) {
                             class: "service-bucket",
                             title: service.buckets.join('\n')
                           }, " [" + _toDisplayString(service.buckets.join(', ')) + "]", 9 /* TEXT, PROPS */, _hoisted_94))
+                        : _createCommentVNode("v-if", true),
+                      (_ctx.serviceOwner(service.service))
+                        ? (_openBlock(), _createElementBlock("span", _hoisted_95, "（" + _toDisplayString(_ctx.serviceOwner(service.service)) + "）", 1 /* TEXT */))
                         : _createCommentVNode("v-if", true)
                     ]),
                     _createElementVNode("small", null, _toDisplayString(service.status), 1 /* TEXT */)
@@ -808,17 +815,17 @@ return function render(_ctx, _cache) {
                       class: "small-button",
                       disabled: _ctx.restartBusy === service.service,
                       onClick: $event => (_ctx.restartService(service.service))
-                    }, _toDisplayString(_ctx.restartBusy === service.service ? "处理中" : "重启"), 9 /* TEXT, PROPS */, _hoisted_95))
+                    }, _toDisplayString(_ctx.restartBusy === service.service ? "处理中" : "重启"), 9 /* TEXT, PROPS */, _hoisted_96))
                   : _createCommentVNode("v-if", true)
               ]))
             }), 128 /* KEYED_FRAGMENT */)),
             (!_ctx.services.length)
-              ? (_openBlock(), _createElementBlock("div", _hoisted_96, "等待服务采样"))
+              ? (_openBlock(), _createElementBlock("div", _hoisted_97, "等待服务采样"))
               : _createCommentVNode("v-if", true)
           ])
         ]),
-        _createElementVNode("article", _hoisted_97, [
-          _createElementVNode("div", _hoisted_98, [
+        _createElementVNode("article", _hoisted_98, [
+          _createElementVNode("div", _hoisted_99, [
             _cache[50] || (_cache[50] = _createElementVNode("div", null, [
               _createElementVNode("div", { class: "eyebrow" }, "ACTIVE ALERTS"),
               _createElementVNode("h2", { id: "alerts-title" }, "当前告警")
@@ -832,7 +839,7 @@ return function render(_ctx, _cache) {
                 }, "立即备份"))
               : _createCommentVNode("v-if", true)
           ]),
-          _createElementVNode("div", _hoisted_99, [
+          _createElementVNode("div", _hoisted_100, [
             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.alerts, (alert) => {
               return (_openBlock(), _createElementBlock("div", {
                 key: alert.id,
@@ -846,7 +853,7 @@ return function render(_ctx, _cache) {
               ]))
             }), 128 /* KEYED_FRAGMENT */)),
             (!_ctx.alerts.length)
-              ? (_openBlock(), _createElementBlock("div", _hoisted_100, _cache[52] || (_cache[52] = [
+              ? (_openBlock(), _createElementBlock("div", _hoisted_101, _cache[52] || (_cache[52] = [
                   _createElementVNode("span", null, "✓", -1 /* CACHED */),
                   _createTextVNode(" 当前没有活动告警 ")
                 ])))
@@ -855,8 +862,8 @@ return function render(_ctx, _cache) {
         ])
       ]),
       _createElementVNode("footer", null, [
-        _createElementVNode("a", _hoisted_101, "LightOps " + _toDisplayString(_ctx.summary.version || "?.?"), 1 /* TEXT */),
-        _createElementVNode("span", _hoisted_102, " · © " + _toDisplayString(_ctx.currentYear), 1 /* TEXT */)
+        _createElementVNode("a", _hoisted_102, "LightOps " + _toDisplayString(_ctx.summary.version || "?.?"), 1 /* TEXT */),
+        _createElementVNode("span", _hoisted_103, " · © " + _toDisplayString(_ctx.currentYear), 1 /* TEXT */)
       ])
     ])
   ], 64 /* STABLE_FRAGMENT */))

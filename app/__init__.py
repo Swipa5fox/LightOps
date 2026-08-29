@@ -1,3 +1,3 @@
 """LightOps application package."""
 
-__version__ = "0.1.4.2"
+__version__ = "0.1.4.3"

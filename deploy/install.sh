@@ -207,6 +207,34 @@ if [ -n "$redis_service" ]; then
     monitored_services="$monitored_services,$redis_service"
 fi
 
+# 升级时保留已有的 LIGHTOPS_SERVICES：管理员可能手工加入了自动探测覆盖不到的
+# 服务（如 Zabbix 的 zabbix-server / zabbix-agent2 / php-fpm），不能被默认值冲掉。
+if [ -f "$ENV_FILE" ]; then
+    configured_services=$(sed -n 's/^LIGHTOPS_SERVICES=//p' "$ENV_FILE" | tail -n 1 | tr -d ' ')
+    configured_services=${configured_services#\'}; configured_services=${configured_services%\'}
+    configured_services=${configured_services#\"}; configured_services=${configured_services%\"}
+    if [ -n "$configured_services" ]; then
+        IFS=, read -r -a configured_items <<< "$configured_services"
+        preserved_services=""
+        all_valid=1
+        for item in "${configured_items[@]}"; do
+            if [ -z "$item" ] || ! printf '%s' "$item" | grep -Eq '^[A-Za-z0-9_.@-]+$'; then
+                all_valid=0
+                break
+            fi
+            if [ -n "$preserved_services" ]; then
+                preserved_services="$preserved_services,$item"
+            else
+                preserved_services=$item
+            fi
+        done
+        if [ "$all_valid" = 1 ] && [ -n "$preserved_services" ]; then
+            monitored_services=$preserved_services
+            lightops_log "preserving configured LIGHTOPS_SERVICES=$monitored_services"
+        fi
+    fi
+fi
+
 if port_is_in_use "$LIGHTOPS_PUBLIC_PORT" && [ ! -f "$NGINX_DEST" ]; then
     fail "TCP $LIGHTOPS_PUBLIC_PORT is already in use and is not managed by an existing LightOps config"
 fi

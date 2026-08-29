@@ -1,3 +1,15 @@
+# 🎉 版本 0.1.4.3 更新日志
+
+## LightOps 轻量服务器监控系统版本更新
+
+发布日期：2026-08-29
+
+### 新增
+
+- **服务使用方标注**：服务状态列表在每个服务名后用小括号标注实际调用方（nginx → LightOps / Zabbix Web，mysqld → Zabbix 数据库，php-fpm → Zabbix Web，zabbix-server / zabbix-agent2 → Zabbix），一眼看清各服务归属。
+
+---
+
 # 🎉 版本 0.1.4.2 更新日志
 
 ## LightOps 轻量服务器监控系统版本更新

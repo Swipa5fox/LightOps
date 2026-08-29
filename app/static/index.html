@@ -423,7 +423,10 @@
                       v-if="service.buckets && service.buckets.length"
                       class="service-bucket"
                       :title="service.buckets.join('\n')"
-                    > [{{ service.buckets.join(', ') }}]</span></strong>
+                    > [{{ service.buckets.join(', ') }}]</span><span
+                      v-if="serviceOwner(service.service)"
+                      class="service-owner"
+                    >（{{ serviceOwner(service.service) }}）</span></strong>
                     <small>{{ service.status }}</small>
                   </div>
                 </div>

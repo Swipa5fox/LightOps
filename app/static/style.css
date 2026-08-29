@@ -1316,6 +1316,13 @@ h2 {
   word-break: break-all;
 }
 
+.service-name .service-owner {
+  color: var(--muted);
+  font-weight: 460;
+  font-size: 11px;
+  margin-left: 2px;
+}
+
 .service-dot {
   width: 8px;
   height: 8px;

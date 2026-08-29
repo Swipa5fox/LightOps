@@ -1,6 +1,6 @@
 # LightOps
 
-![version](https://img.shields.io/badge/version-0.1.4.2-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-0.1.4.3-blue?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-Linux-lightgrey?style=flat-square&logo=linux&logoColor=black)
 ![python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat-square&logo=python&logoColor=white)
 ![fastapi](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)

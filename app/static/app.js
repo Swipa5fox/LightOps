@@ -7,6 +7,14 @@
   var REQUEST_TIMEOUT_MS = 10000;
   var WEATHER_REFRESH_MS = 30 * 60 * 1000;
   var CLOCK_REFRESH_MS = 60 * 1000;
+  // Which consumer actually uses each monitored systemd unit on this host.
+  var SERVICE_OWNERS = {
+    nginx: "LightOps / Zabbix Web",
+    mysqld: "Zabbix 数据库",
+    "zabbix-server": "Zabbix",
+    "zabbix-agent2": "Zabbix",
+    "php-fpm": "Zabbix Web"
+  };
   // Timers are plain closures: nothing renders off their ids.
   var refreshTimer = null;
   var weatherTimer = null;
@@ -285,6 +293,9 @@
         window.clearInterval(clockTimer);
       },
     methods: {
+      serviceOwner: function (service) {
+        return SERVICE_OWNERS[service] || "";
+      },
       authHeaders: function () {
         var token = session.read();
         return token ? { Authorization: "Bearer " + token } : {};
