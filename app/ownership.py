@@ -20,6 +20,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from .settings import settings
+
 logger = logging.getLogger("lightops.ownership")
 
 _OWNERSHIP_FILE = Path("/var/lib/lightops/ownership.json")
@@ -52,12 +54,27 @@ def _load() -> dict[str, Any]:
 
 
 def used_by(service: str) -> str:
-    """Human label of who uses `service`; empty when nothing local does."""
+    """Human label of who uses `service`; empty when nothing is known.
+
+    优先级：探针识别到的调用方（运行时真实关系）→ 管理员在
+    LIGHTOPS_SERVICE_LABELS 里写的语义标注 → 对外监听信息（端口 + 入站连接数）。
+    """
     data = _load()
     consumers = sorted(data.get("consumers", {}).get(service, ()))
     if consumers:
         return " / ".join(consumers)
+    inbound = data.get("inbound", {}).get(service, {}) or {}
+    external = int(inbound.get("external", 0))
+    local = int(inbound.get("local", 0))
+    label = settings.service_labels.get(service, "")
+    if label:
+        return label + (" · 外部连接 %d" % external if external else "")
     held = sorted(data.get("ports", {}).get(service, ()))
     if held:
-        return "对外端口 " + " / ".join(str(port) for port in held)
+        ports = "对外端口 " + " / ".join(str(port) for port in held)
+        if external or local:
+            return ports + " · %d 外部 / %d 本机连接" % (external, local)
+        return ports
+    if local:
+        return "本机连接 %d" % local
     return ""

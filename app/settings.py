@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -30,6 +30,29 @@ def _services() -> tuple[str, ...]:
     return values
 
 
+def _service_labels() -> dict[str, str]:
+    """`LIGHTOPS_SERVICE_LABELS='nginx:LightOps 面板 / Zabbix Web,php-fpm:Zabbix Web'`
+
+    自动识别（连接推导）给不出语义时的人肉补充：写在服务器配置里，不进代码。
+    """
+    labels: dict[str, str] = {}
+    raw = os.getenv("LIGHTOPS_SERVICE_LABELS", "").strip()
+    if not raw:
+        return labels
+    for entry in raw.split(","):
+        name, _, label = entry.partition(":")
+        name = name.strip()
+        label = label.strip()
+        if not name or not label:
+            continue
+        if not _SERVICE_NAME.fullmatch(name):
+            raise RuntimeError(
+                "LIGHTOPS_SERVICE_LABELS contains an invalid systemd unit name"
+            )
+        labels[name] = label
+    return labels
+
+
 @dataclass(frozen=True)
 class Settings:
     database_path: Path = Path(
@@ -43,6 +66,7 @@ class Settings:
         "LIGHTOPS_SYSTEMCTL_PATH", "/usr/bin/systemctl"
     )
     services: tuple[str, ...] = _services()
+    service_labels: dict[str, str] = field(default_factory=_service_labels)
     collect_interval_seconds: int = _env_number("LIGHTOPS_COLLECT_INTERVAL", 60, int)
     retention_days: int = _env_number("LIGHTOPS_RETENTION_DAYS", 7, int)
     alert_cooldown_minutes: int = _env_number("LIGHTOPS_ALERT_COOLDOWN_MINUTES", 15, int)

@@ -90,10 +90,58 @@ def unit_pids(line: str, units: dict[int, str]) -> set[str]:
     return {units[int(pid)] for pid in pids if int(pid) in units}
 
 
-def build_snapshot() -> tuple[dict[str, set[str]], dict[str, set[int]]]:
+def dependency_edges(providers: set[str]) -> dict[str, set[str]]:
+    """systemd 声明式依赖：谁 Requires/Wants 我，谁就在用我。
+
+    连接采样抓不到声明式依赖（例如 nginx.service 依赖 php-fpm），这条
+    信号是静态且确定的，与运行时连接互为补充。
+    """
+    edges: dict[str, set[str]] = {}
+    for provider in sorted(providers):
+        try:
+            result = subprocess.run(
+                [
+                    os.getenv("LIGHTOPS_SYSTEMCTL_PATH", "/usr/bin/systemctl"),
+                    "list-dependencies",
+                    "--reverse",
+                    "--plain",
+                    "--no-pager",
+                    f"{provider}.service",
+                ],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=10,
+                check=False,
+                env=_RUN_ENV,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if result.returncode != 0:
+            continue
+        for line in result.stdout.splitlines():
+            name = line.strip().lstrip("●•* ").strip()
+            if not name.endswith(_SERVICE_SUFFIX) or name.endswith(".target"):
+                continue
+            dependent = name[: -len(_SERVICE_SUFFIX)]
+            if dependent != provider:
+                edges.setdefault(provider, set()).add(dependent)
+    return edges
+
+
+def build_snapshot() -> tuple[
+    dict[str, set[str]], dict[str, set[int]], dict[str, dict[str, int]]
+]:
     units = process_units()
     edges: dict[str, set[str]] = {}
     service_ports: dict[str, set[int]] = {}
+    inbound: dict[str, dict[str, int]] = {}
+    local_addresses: set[str] = set()
+
+    def count_inbound(provider: str, external: bool) -> None:
+        counts = inbound.setdefault(provider, {"external": 0, "local": 0})
+        counts["external" if external else "local"] += 1
 
     # TCP listeners: "LISTEN 0 511 0.0.0.0:1224 0.0.0.0:* users:(...)"
     listeners: dict[int, set[str]] = {}
@@ -101,9 +149,11 @@ def build_snapshot() -> tuple[dict[str, set[str]], dict[str, set[int]]]:
         tokens = line.split()
         if len(tokens) < 5 or tokens[0] != "LISTEN":
             continue
-        port_text = tokens[3].rsplit(":", 1)[-1]
+        local = tokens[3]
+        port_text = local.rsplit(":", 1)[-1]
         if not port_text.isdigit():
             continue
+        local_addresses.add(local.rsplit(":", 1)[0])
         providers = unit_pids(line, units)
         if providers:
             port = int(port_text)
@@ -118,38 +168,23 @@ def build_snapshot() -> tuple[dict[str, set[str]], dict[str, set[int]]]:
         tokens = line.split()
         if len(tokens) < 4:
             continue
+        local = tokens[2]
+        peer = tokens[3]
+        local_port = local.rsplit(":", 1)[-1]
+        peer_port = peer.rsplit(":", 1)[-1]
+        peer_address = peer.rsplit(":", 1)[0]
         consumers = unit_pids(line, units)
-        if not consumers:
-            continue
-        peer_port = tokens[3].rsplit(":", 1)[-1]
-        if not peer_port.isdigit():
+        if local_port.isdigit():
+            # 本端是监听方：这条是别人的入站连接，按对端是否本机分类计数。
+            for provider in listeners.get(int(local_port), set()):
+                count_inbound(provider, peer_address not in local_addresses)
+        if not consumers or not peer_port.isdigit():
             continue
         for provider in listeners.get(int(peer_port), set()):
             for consumer in consumers:
                 if consumer != provider:
                     edges.setdefault(provider, set()).add(consumer)
 
-    # Unix sockets: "u_str STATE RQ SQ Path LocalInode Peer PeerInode users".
-    # An established pair whose remote end belongs to another unit means one
-    # unit is talking to the other (fastcgi, mysql.sock, ...). ss does not
-    # record the direction of an accepted pair, so only claim an edge when
-    # exactly one side owns a listening socket (that side is the server);
-    # when both or neither do, the direction would be a guess - skip it.
-    unix_lines: list[tuple[str, list[str]]] = []
-    inode_units: dict[int, set[str]] = {}
-    listener_units: set[str] = set()
-    for line in run_ss(["-H", "-xnp"]).splitlines():
-        tokens = line.split()
-        if len(tokens) < 8 or not tokens[0].startswith("u_"):
-            continue
-        unix_lines.append((line, tokens))
-        if not tokens[5].isdigit():
-            continue
-        owners = unit_pids(line, units)
-        if owners:
-            inode_units.setdefault(int(tokens[5]), set()).update(owners)
-            if tokens[1] == "LISTEN":
-                listener_units.update(owners)
     # Unix sockets: "u_str STATE RQ SQ Path LocalInode Peer PeerInode users".
     # An established pair whose remote end belongs to another unit means one
     # unit is talking to the other (fastcgi, mysql.sock, ...). Direction:
@@ -189,6 +224,8 @@ def build_snapshot() -> tuple[dict[str, set[str]], dict[str, set[int]]]:
             servers = listen_paths[path]
             clients = inode_units.get(peer_inode, set())
             for server in servers:
+                # unix 套接字只在本机可达，一律算本机入站连接。
+                count_inbound(server, False)
                 for client in clients:
                     if client != server:
                         edges.setdefault(server, set()).add(client)
@@ -205,7 +242,14 @@ def build_snapshot() -> tuple[dict[str, set[str]], dict[str, set[int]]]:
                 else:
                     edges.setdefault(holder, set()).add(server)
 
-    return edges, service_ports
+    # 声明式依赖兜底：连接采样看不到 Requires/Wants 关系（nginx → php-fpm）。
+    providers = set(service_ports)
+    for owners in listen_paths.values():
+        providers.update(owners)
+    for provider, dependents in dependency_edges(providers).items():
+        edges.setdefault(provider, set()).update(dependents)
+
+    return edges, service_ports, inbound
 
 
 # 连接是瞬时的（agent2 周期上报、fastcgi 按请求建连），把观测到的边持久化
@@ -232,7 +276,7 @@ def _save_state(state: dict[str, dict[str, float]]) -> None:
 
 
 def main() -> None:
-    edges, ports = build_snapshot()
+    edges, ports, inbound = build_snapshot()
     now = time.time()
     state = _load_state()
     for provider, consumers in edges.items():
@@ -253,6 +297,7 @@ def main() -> None:
             provider: sorted(who) for provider, who in state.items()
         },
         "ports": {name: sorted(held) for name, held in ports.items()},
+        "inbound": inbound,
     }
     temporary = OUTPUT_FILE.with_suffix(".json.tmp")
     temporary.write_text(json.dumps(payload), encoding="utf-8")
