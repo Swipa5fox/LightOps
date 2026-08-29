@@ -42,7 +42,6 @@ class Settings:
     systemctl_path: str = os.getenv(
         "LIGHTOPS_SYSTEMCTL_PATH", "/usr/bin/systemctl"
     )
-    sudo_path: str = os.getenv("LIGHTOPS_SUDO_PATH", "/usr/bin/sudo")
     services: tuple[str, ...] = _services()
     collect_interval_seconds: int = _env_number("LIGHTOPS_COLLECT_INTERVAL", 60, int)
     retention_days: int = _env_number("LIGHTOPS_RETENTION_DAYS", 7, int)
@@ -68,7 +67,6 @@ class Settings:
             )
         for name, value in (
             ("LIGHTOPS_SYSTEMCTL_PATH", self.systemctl_path),
-            ("LIGHTOPS_SUDO_PATH", self.sudo_path),
         ):
             if not Path(value).is_absolute() or any(char.isspace() for char in value):
                 raise RuntimeError(f"{name} must be an absolute command path")

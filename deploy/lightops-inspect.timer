@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh LightOps socket ownership data
+
+[Timer]
+OnBootSec=20s
+OnUnitActiveSec=20s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

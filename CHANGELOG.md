@@ -1,3 +1,24 @@
+# 🎉 版本 0.1.4.5 更新日志
+
+## LightOps 轻量服务器监控系统版本更新
+
+发布日期：2026-08-29
+
+### 新增
+
+- **服务使用方自动识别**：`used_by` 标注完全自动推导（新增 `app/ownership_probe.py` + `deploy/lightops-inspect.{service,timer}` + 精简后的 `app/ownership.py`）。root 侧探针每 60s 用 ss 抓套接字表，通过 `/proc/<pid>/cgroup` 把进程归属到 systemd 单元，推导调用关系——TCP 已建立连接的客户端单元即监听端口服务的使用方；Unix 已建立连接仅一端持有监听套接字时定向（fastcgi / mysql.sock 场景），两端都有监听时不猜方向；无本地调用方的监听型服务标注"对外端口"。结果写入 `/run/lightops/ownership.json`，App 只读文件、零特权；任何服务器部署开箱即用，无需维护映射。
+
+### 修复
+
+- **面板"重启服务"按钮从未生效**：unit 加固项（ProtectKernel*、RestrictAddressFamilies、SystemCallArchitectures、LockPersonality）会隐式开启内核 NoNewPrivs 标志，服务内 sudo 必然失败。改为安装器渲染 `/etc/polkit-1/rules.d/50-lightops.rules`（仅允许 lightops 用户 restart 受监控单元），`collector.restart_service` 直接调 systemctl 走 polkit 授权。
+
+### 调整
+
+- **权限模型理顺**：检测与重启都不再依赖 sudo（RHEL9 的 `kernel.yama.ptrace_scope=2` 也让非 root 的 CAP_SYS_PTRACE 失效，故检测走 root 探针 + 文件交接）。安装器 dnf/yum 包清单加入 `polkit`（apt 为 `policykit-1`），安装并启用探针 systemd 单元；移除 App 侧 `LIGHTOPS_SS_PATH` / `LIGHTOPS_SUDO_PATH` 依赖（lightopsctl / verify-server 仍用后者，不受影响）。
+- **升级保留自定义服务清单**：install.sh 升级时保留已有 `LIGHTOPS_SERVICES`，管理员手工加入的监控服务（如 Zabbix 三件套）不再被自动探测默认值冲掉。
+
+---
+
 # 🎉 版本 0.1.4.3 更新日志
 
 ## LightOps 轻量服务器监控系统版本更新

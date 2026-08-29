@@ -15,7 +15,6 @@ os.environ["LIGHTOPS_SERVICES"] = "nginx,mysqld,redis"
 if os.name == "nt":
     harmless_command = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32" / "where.exe"
     os.environ["LIGHTOPS_SYSTEMCTL_PATH"] = str(harmless_command)
-    os.environ["LIGHTOPS_SUDO_PATH"] = str(harmless_command)
 
 from fastapi.testclient import TestClient  # noqa: E402
 

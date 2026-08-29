@@ -26,7 +26,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import __version__, collector, db, weather
+from . import __version__, collector, db, ownership, weather
 from .settings import settings
 
 
@@ -282,9 +282,13 @@ def health(response: Response) -> dict:
 def summary() -> dict:
     memory = psutil.virtual_memory()
     disk = psutil.disk_usage("/")
+    services = db.latest_services()
+    # 使用方标注是"现在"的关系而非历史采样，实时计算（ownership 内部带 60s 缓存）。
+    for item in services:
+        item["used_by"] = ownership.used_by(item["service"])
     return {
         "metric": db.latest_metric(),
-        "services": db.latest_services(),
+        "services": services,
         "alerts": db.active_alerts(),
         "host": {
             "cloud_provider": settings.cloud_provider,

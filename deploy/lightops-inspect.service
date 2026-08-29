@@ -1,0 +1,7 @@
+[Unit]
+Description=LightOps socket ownership probe (root-side data for the panel)
+
+[Service]
+Type=oneshot
+Environment=PYTHONPATH=/opt/lightops
+ExecStart=/opt/lightops/.venv/bin/python -m app.ownership_probe

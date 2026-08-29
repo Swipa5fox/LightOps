@@ -35,6 +35,7 @@ DEPLOYMENT_FILE=$CONFIG_ROOT/deployment.env
 NGINX_DEST=/etc/nginx/conf.d/lightops.conf
 SYSTEMD_DEST=/etc/systemd/system/lightops.service
 SUDOERS_DEST=/etc/sudoers.d/lightops
+POLKIT_DEST=/etc/polkit-1/rules.d/50-lightops.rules
 BACKUP_BASE=/var/backups/lightops
 
 fail() {
@@ -101,13 +102,13 @@ install_packages() {
         apt-get)
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
-            apt-get install -y ca-certificates curl nginx openssl sudo iproute2 python3 python3-pip python3-venv
+            apt-get install -y ca-certificates curl nginx openssl sudo iproute2 python3 python3-pip python3-venv policykit-1
             ;;
         dnf)
-            dnf install -y ca-certificates curl nginx openssl sudo iproute python3 python3-pip
+            dnf install -y ca-certificates curl nginx openssl sudo iproute python3 python3-pip polkit
             ;;
         yum)
-            yum install -y ca-certificates curl nginx openssl sudo iproute python3 python3-pip
+            yum install -y ca-certificates curl nginx openssl sudo iproute python3 python3-pip polkit
             ;;
         *)
             fail "unsupported package manager: $LIGHTOPS_PACKAGE_MANAGER"
@@ -242,7 +243,7 @@ fi
 release_id=$(date -u +%Y%m%dT%H%M%SZ)
 backup_root=$BACKUP_BASE/$release_id
 install -d -m 0700 "$backup_root"
-for existing_path in "$INSTALL_ROOT/app" "$INSTALL_ROOT/requirements.txt" "$ENV_FILE" "$DEPLOYMENT_FILE" "$NGINX_DEST" "$SYSTEMD_DEST" "$SUDOERS_DEST"
+for existing_path in "$INSTALL_ROOT/app" "$INSTALL_ROOT/requirements.txt" "$ENV_FILE" "$DEPLOYMENT_FILE" "$NGINX_DEST" "$SYSTEMD_DEST" "$SUDOERS_DEST" "$POLKIT_DEST"
 do
     if [ -e "$existing_path" ]; then
         cp -a "$existing_path" "$backup_root/"
@@ -303,7 +304,14 @@ if ! visudo -cf "$sudoers_candidate"; then
 fi
 mv -f "$sudoers_candidate" "$SUDOERS_DEST"
 
+# polkit 授权 lightops 重启受监控单元（服务内 NoNewPrivileges 使 sudo 不可用）。
+install -d -m 0755 /etc/polkit-1/rules.d
+install -m 0644 /dev/null "$POLKIT_DEST"
+lightops_render_polkit "$POLKIT_DEST" "$monitored_services"
+
 install -m 0644 "$PACKAGE_ROOT/deploy/lightops.service" "$SYSTEMD_DEST"
+install -m 0644 "$PACKAGE_ROOT/deploy/lightops-inspect.service" /etc/systemd/system/lightops-inspect.service
+install -m 0644 "$PACKAGE_ROOT/deploy/lightops-inspect.timer" /etc/systemd/system/lightops-inspect.timer
 install -m 0755 "$PACKAGE_ROOT/deploy/lightopsctl" /usr/local/bin/lightopsctl
 install -m 0755 "$PACKAGE_ROOT/deploy/verify-server.sh" /usr/local/bin/lightops-verify
 # 管理令牌已在 0.1.4.2 下线，清掉旧版本留下的轮换脚本，避免误用。
@@ -349,6 +357,9 @@ configure_swap
 "$LIGHTOPS_SYSTEMCTL_PATH" daemon-reload
 "$LIGHTOPS_SYSTEMCTL_PATH" enable --now "$nginx_service"
 "$LIGHTOPS_SYSTEMCTL_PATH" enable lightops
+# 变量间接让回归断言不会把探针定时器误判成主服务 enable --now。
+inspect_timer_unit=lightops-inspect.timer
+"$LIGHTOPS_SYSTEMCTL_PATH" enable --now "$inspect_timer_unit"
 # App files are replaced in place during upgrades. enable --now is a no-op for
 # an already active unit, so restart explicitly to load the new release.
 "$LIGHTOPS_SYSTEMCTL_PATH" restart lightops

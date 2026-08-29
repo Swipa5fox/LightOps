@@ -801,8 +801,8 @@ return function render(_ctx, _cache) {
                             title: service.buckets.join('\n')
                           }, " [" + _toDisplayString(service.buckets.join(', ')) + "]", 9 /* TEXT, PROPS */, _hoisted_94))
                         : _createCommentVNode("v-if", true),
-                      (_ctx.serviceOwner(service.service))
-                        ? (_openBlock(), _createElementBlock("span", _hoisted_95, "（" + _toDisplayString(_ctx.serviceOwner(service.service)) + "）", 1 /* TEXT */))
+                      (service.used_by)
+                        ? (_openBlock(), _createElementBlock("span", _hoisted_95, "（" + _toDisplayString(service.used_by) + "）", 1 /* TEXT */))
                         : _createCommentVNode("v-if", true)
                     ]),
                     _createElementVNode("small", null, _toDisplayString(service.status), 1 /* TEXT */)

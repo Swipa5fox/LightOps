@@ -424,9 +424,9 @@
                       class="service-bucket"
                       :title="service.buckets.join('\n')"
                     > [{{ service.buckets.join(', ') }}]</span><span
-                      v-if="serviceOwner(service.service)"
+                      v-if="service.used_by"
                       class="service-owner"
-                    >（{{ serviceOwner(service.service) }}）</span></strong>
+                    >（{{ service.used_by }}）</span></strong>
                     <small>{{ service.status }}</small>
                   </div>
                 </div>

@@ -28,6 +28,12 @@ test "$(grep -c '^LIGHTOPS_CPU_THRESHOLD=' "$env_file")" -eq 1
 lightops_render_sudoers "$sudoers_file" /usr/bin/systemctl 'nginx,redis-server'
 grep -Fq '/usr/bin/systemctl restart nginx, /usr/bin/systemctl restart redis-server' "$sudoers_file"
 grep -Fq 'lightops ALL=(root) NOPASSWD: LIGHTOPS_RESTART' "$sudoers_file"
+
+polkit_file=$fixture_root/50-lightops.rules
+lightops_render_polkit "$polkit_file" 'nginx,redis-server'
+grep -Fq '"nginx.service", "redis-server.service"' "$polkit_file"
+grep -Fq 'org.freedesktop.systemd1.manage-units' "$polkit_file"
+grep -Fq 'subject.user !== "lightops"' "$polkit_file"
 if command -v visudo >/dev/null 2>&1; then
     chmod 0440 "$sudoers_file"
     if ! visudo -cf "$sudoers_file" 2>"$fixture_root/visudo.err"; then

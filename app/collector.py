@@ -176,11 +176,13 @@ def collect_once() -> dict[str, Any]:
 def restart_service(service: str) -> tuple[bool, str]:
     if service not in settings.services:
         return False, "service is not in the restart whitelist"
+    # No sudo here: the service unit runs with NoNewPrivileges (implicit from
+    # its systemd hardening options), which blocks sudo entirely. polkit
+    # authorizes this systemctl call instead (50-lightops.rules, rendered by
+    # install.sh from the monitored service list).
     try:
         result = subprocess.run(
             [
-                settings.sudo_path,
-                "-n",
                 settings.systemctl_path,
                 "restart",
                 service,
