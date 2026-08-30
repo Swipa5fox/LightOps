@@ -13,9 +13,9 @@ LightOps 是一个轻量的 Linux 服务器监控面板，主要功能：
 - 趋势图：10 分钟 / 1 小时 / 24 小时 / 7 天
 - 资源超阈值自动告警，恢复后自动解除
 - 按城市名查询实时天气（支持区级细化）
-- 独立登录页，Admin / Guest 两级权限
-- 一键重启白名单服务、一键备份、审计日志
-- 日间 / 夜间主题一键切换
+- 独立登录页，Admin/Guest两级权限
+- 一键重启服务、一键备份、审计日志
+- 一键切换日间/夜间主题
 
 技术栈：FastAPI + psutil + APScheduler + SQLite，Vue 3 前端，Nginx + systemd 部署。
 
@@ -39,7 +39,7 @@ LightOps 是一个轻量的 Linux 服务器监控面板，主要功能：
 
 ### 用户菜单与权限
 
-顶栏用户名按钮下拉：我的账户（带「管理员」角色徽标）、修改密码（独立 modal）、退出登录。重启/备份按钮仅 Admin 可见。
+顶栏用户名按钮下拉：我的账户（带角色徽标）、修改密码、退出登录。重启/备份按钮（仅Admin用户）可见。
 
 ![用户菜单与角色徽标](docs/screenshots/05-admin-user-menu.png)
 
@@ -47,33 +47,32 @@ LightOps 是一个轻量的 Linux 服务器监控面板，主要功能：
 
 ### 监控面板
 
-- 每 60 秒采集 CPU、内存、系统盘、负载与网络累计流量；
-- 资源卡展示 CPU 核数、内存/磁盘"已使用 / 总容量"，阈值分级着色；
-- 趋势图支持 10 分钟、1 小时、24 小时、7 天，悬停吸附最近采样点并显示精确数值；
-- 服务状态：仅监控安装器识别并写入白名单的 systemd 服务；
-- 活动告警：CPU/内存/磁盘超阈值自动产生，恢复后自动解除；
-- 城市天气：按城市名查询实时天气，支持细化到区级候选与图标展示。
+- 每 60 秒采集 CPU、内存、系统盘的负载情况；
+- 资源卡展示 CPU 核数、内存/磁盘"已使用 / 总容量"；
+- 趋势图支持 10 分钟、1 小时、24 小时、7 天记录，根据最近采样点来显示精确数值；
+- 服务状态：监控安装器识别并写入白名单的 systemd 服务；
+- 活动告警：CPU/内存/磁盘超阈值自动产生，恢复后自动解除告警状态；
+- 城市天气：自持按城市名查询当地实时天气，细分到区级天气。
 
 ### 账户与权限
 
 - 独立登录页 ：全新界面，未登录访问面板自动跳转，登录成功回跳；
 - 两级角色：**Admin（管理员）** 拥有全部权限，**Guest（访客）** 仅支持查看面板；
-- 管理操作（重启服务、立即备份、审计日志）由后端强制门禁：仅管理员（Admin）会话可通行，访客会话一律 403，前端同时隐藏对应按钮；
+- 管理操作（重启服务、立即备份、审计日志）由后端强制门禁：仅管理员（ Admin ）会话可通行，访客会话一律 403，前端同时隐藏对应按钮；
 - 修改密码后所有旧会话立即失效，强制重新登录；
 - 密码以 PBKDF2-HMAC-SHA256 哈希存储，登录会话仅保存在当前浏览器标签页（sessionStorage），关闭标签页即失效。
 
 ### 运维操作
 
-- 一键重启白名单内的 systemd 服务（经 sudoers 最小白名单授权）；
+- 一键重启白名单内的 systemd 服务；
 - 手动触发 SQLite 一致性备份，同时清理超过保留期的历史数据；
 - 审计日志记录登录、退出、改密码、重启、备份等关键操作。
 
-### 安全与体验
+### 安全与个性化体验
 
 - 严格 CSP（script-src 'self'，无 unsafe-eval）、Permissions-Policy、隐藏 Nginx 版本号；
-- 自定义 404/500 错误页，静态资源 gzip 压缩；
-- 日间/夜间主题一键切换：顶栏太阳/月亮按钮带动画切换，偏好写入 localStorage 自动记忆，首次访问跟随系统偏好，登录页同步；
-- 键盘焦点、状态播报、减少动画偏好与趋势文本摘要等无障碍支持；
+- 可自定义化的 404/500 错误页，静态资源 gzip 压缩；
+- 日间/夜间主题一键切换：顶栏太阳/月亮按钮附带动画切换，同时将用户偏好主题写入记忆，首次访问跟随系统偏好；
 - 前端所有请求 10 秒超时，切换趋势范围时不会出现旧请求覆盖新数据。
 
 ## 技术实现思路
@@ -82,13 +81,13 @@ LightOps 是一个轻量的 Linux 服务器监控面板，主要功能：
 
 - **采集与调度**：`collector` 模块用 psutil 读取系统指标，APScheduler（后台线程池）驱动"采集 + 每日维护"两个任务，采集频率与保留期可配置；
 - **存储**：SQLite（WAL 模式）单文件存储指标、服务采样、告警、审计日志与用户会话；指标与审计默认保留 7 天，每日 3 点清理过期数据并做一致性备份；
-- **认证与授权**：登录签发随机会话 token（7 天有效），密码 PBKDF2 哈希；用户表带 `role` 列区分 admin/guest；管理操作通过 FastAPI 依赖注入 `require_admin_access` 统一门禁——仅 admin 角色会话放行，访客会话 403，无凭证 401；
+- **认证与授权**：登录签发随机会话 token（7 天有效），密码 PBKDF2 哈希；用户表带 `role` 列区分 admin/guest；管理操作通过 FastAPI 依赖注入 `require_admin_access` 统一门禁——仅 admin 角色会话放行，访客会话返回 403，无凭证会话返回 401；
 - **API 设计**：只读数据接口（summary/metrics/services/alerts/weather）不设门槛保证面板可用，写操作集中收口到三个受保护接口，风险面最小。
 
 ### 前端
 
 - **零构建发布**：Vue 3 运行时 + `@vue/compiler-dom` 离线预编译的 `render.js`（由 `tools/generate-render.mjs` 从 index.html 生成），发布包不含 CDN 依赖、不含图表库，趋势曲线用原生 SVG 绘制；
-- **登录页独立**：`login.html` 使用原生 JavaScript（无 Vue），与面板完全分离，聚焦认证单一职责；
+- **独立登录页**：`login.html` 使用原生 JavaScript，与面板完全分离，聚焦认证单一职责；
 - **状态管理**：登录会话由共享的 `session.js` 读写 sessionStorage，天气偏好同样存 sessionStorage；主题偏好由独立 `theme.js` 集中读写 localStorage（`lightops_theme`），`app.js` 不触碰 localStorage，面板与登录页共享同一套偏好。
 
 ### 部署
@@ -133,20 +132,26 @@ bash deploy/install.sh
 
 说明：
 
-- 新密码长度至少 6 位，以 PBKDF2-HMAC-SHA256 哈希存储，数据库中不保存明文；
-- Admin 与 Guest 均可通过该入口修改自己的密码，改密码操作会记录到审计日志；
-- 若忘记密码，请联系能访问服务器 root 的管理员处理；**目前没有命令行重置密码工具**。
+- 新密码长度至少 6 位，以 PBKDF2-HMAC-SHA256 哈希存储，不会在数据库中保存明文；
+- Admin 与 Guest 用户均可通过该入口修改自己的密码，改密码操作会记录到审计日志；
+- 若 Guest （访客）忘记密码，请联系服务器管理员处理。
 
 ## 可配置项
 
 config.env 中包含全部首次部署选项。常用项：
 
 - LIGHTOPS_PUBLIC_PORT=8080
+  对外监听端口，整数 1-65535，不得为 8000（与 Uvicorn 私有监听端口冲突）；
 - LIGHTOPS_SERVER_NAME=_
+  Nginx server_name，允许 A-Za-z0-9._*-，默认 `_` 表示匹配所有请求；
 - LIGHTOPS_PUBLIC_HOST=SERVER_IP
+  对外主机名或 IP（允许 A-Za-z0-9._:-），安装完成后用其拼接面板访问地址；
 - LIGHTOPS_CLOUD_PROVIDER=auto
+  云厂商标识，auto 表示自动探测，手工指定时不得包含单引号；
 - LIGHTOPS_*_SERVICE=auto
+  受监控的 systemd 服务名，auto 表示自动探测，未安装的候选会被忽略；
 - LIGHTOPS_ENABLE_SWAP=0
+  是否由安装器创建 Swap，取值 0 或 1，创建属于系统级变更需先取得明确授权。
 
 auto 服务检测候选：
 
@@ -186,7 +191,18 @@ lightopsctl url
 sudo lightops-verify
 ~~~
 
-管理操作一律走 Admin 登录会话，不要再引入任何第二套凭证。不要把 SSH 私钥、MySQL 密码或 Redis 密码粘贴到聊天中。
+命令说明：
+
+- lightopsctl status：查看 lightops 服务状态（systemctl status，含进程与内存占用）；
+- lightopsctl health：调用本地健康检查接口，输出服务健康状态；
+- lightopsctl logs 100：查看服务最近日志，默认 100 行，行数可自定义；
+- lightopsctl restart：重启 lightops 服务并等待健康检查通过（15 秒超时）；
+- lightopsctl backup：执行数据库一致性备份并清理过期历史数据；
+- lightopsctl nginx-reload：先验证 Nginx 配置语法，通过后重载 Nginx；
+- lightopsctl url：显示面板访问地址；
+- sudo lightops-verify：以 root 运行部署验收检查，确认安装结果完整可用。
+
+管理操作一律走 Admin 登录会话，无需再引入任何第二套凭证。**以安全起见，请务必记住不要把 SSH 私钥、MySQL 密码或 Redis 密码粘贴到任何会话聊天中。**
 
 ## 修改前端
 
@@ -209,6 +225,8 @@ node --check app/static/app.js
 python -m pip install -r requirements-dev.txt
 ~~~
 
+先安装锁定的开发与测试依赖（含 FastAPI TestClient 等测试所需包），再执行以下测试：
+
 ~~~bash
 python -m compileall -q app tests
 python tests/smoke.py
@@ -222,5 +240,17 @@ bash tests/nginx_template.sh
 bash -n deploy/lib/platform.sh deploy/lib/config.sh deploy/preflight.sh deploy/install.sh
 bash -n deploy/lightopsctl deploy/verify-server.sh
 ~~~
+
+测试命令说明：
+
+- python -m compileall -q app tests：编译全部 Python 源码，检查语法错误；
+- python tests/smoke.py：冒烟测试，用临时目录隔离数据库，验证建库、指标采集等核心流程；
+- python tests/api_smoke.py：API 冒烟测试，用 FastAPI TestClient 验证健康检查与各接口行为；
+- python tests/frontend_smoke.py：前端静态检查，解析 HTML/JS，校验 id 引用、内联脚本/样式与 CSP 约束；
+- node --check app/static/app.js / render.js：对前端 JS 文件做语法检查（render.js 为生成文件）；
+- bash tests/platform_detection.sh：测试跨发行版平台识别逻辑（os-release、架构、包管理器等）；
+- bash tests/install_helpers.sh：测试安装辅助函数（如配置写入 lightops_write_env_setting）；
+- bash tests/nginx_template.sh：测试 Nginx 配置模板的端口、server_name 变量替换；
+- bash -n deploy/...：对全部部署 shell 脚本做语法检查（不执行）。
 
 发行版分支测试使用隔离的 /etc/os-release、架构和包管理器夹具，不会修改测试主机。真实发布仍需在目标服务器执行预检、安装和验收。
