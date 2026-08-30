@@ -16,11 +16,14 @@ EXCLUDED_PARTS = {
     ".npm-cache",
     ".venv",
     "__pycache__",
+    "docs",
     "node_modules",
 }
+
 EXCLUDED_NAMES = {
     ".env",
     "config.env",
+    "SHA256SUMS",
 }
 def release_version() -> str:
     match = re.search(
@@ -65,7 +68,8 @@ def normalized_info(path: Path, arcname: str) -> tarfile.TarInfo:
 def normalized_file_content(path: Path) -> bytes:
     data = path.read_bytes()
     relative = path.relative_to(ROOT).as_posix()
-    if path.suffix == ".sh" or relative == "deploy/lightopsctl":
+    
+    if path.suffix == ".sh" or relative == "deploy/lightopsctl" or path.name == "config.env.example":
         return data.replace(b"\r\n", b"\n")
     if relative.startswith("deploy/") and (
         path.suffix in {".conf", ".service", ".sudoers"}
