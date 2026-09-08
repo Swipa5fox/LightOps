@@ -170,6 +170,8 @@ def _unit_state(service: str) -> tuple[str, str, str]:
     """(LoadState, ActiveState, Type)；unit 不存在时 LoadState 为 not-found。"""
     unit = service if service.endswith(".service") else f"{service}.service"
     try:
+        # 不要用 --value：属性按字母序输出（ActiveState 会排在 LoadState 前），
+        # 靠位置取值必然错位。默认 Key=Value 输出才稳定。
         result = _systemctl(
             "show",
             unit,
@@ -179,19 +181,18 @@ def _unit_state(service: str) -> tuple[str, str, str]:
             "ActiveState",
             "-p",
             "Type",
-            "--value",
             timeout=10,
         )
     except (OSError, subprocess.SubprocessError) as exc:
         logger.warning("systemctl show %s failed: %s", unit, exc)
         return "unknown", "", ""
-    values = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-    # systemd < 247 不认 --value，会输出 Key=Value；两种格式都吃掉。
-    parsed = [value.partition("=")[2] or value for value in values]
-    load = parsed[0] if parsed else "not-found"
-    active = parsed[1] if len(parsed) > 1 else ""
-    unit_type = parsed[2] if len(parsed) > 2 else ""
-    return load or "not-found", active, unit_type
+    props: dict[str, str] = {}
+    for line in result.stdout.splitlines():
+        key, _, value = line.partition("=")
+        if key.strip():
+            props[key.strip()] = value.strip()
+    load = props.get("LoadState") or "not-found"
+    return load, props.get("ActiveState", ""), props.get("Type", "")
 
 
 def service_states() -> list[dict[str, Any]]:
