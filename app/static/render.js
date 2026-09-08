@@ -808,7 +808,7 @@ return function render(_ctx, _cache) {
                     _createElementVNode("small", null, _toDisplayString(service.status), 1 /* TEXT */)
                   ])
                 ]),
-                (_ctx.isAdmin)
+                (_ctx.isAdmin && service.managed)
                   ? (_openBlock(), _createElementBlock("button", {
                       key: 0,
                       type: "button",

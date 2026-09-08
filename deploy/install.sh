@@ -208,8 +208,9 @@ if [ -n "$redis_service" ]; then
     monitored_services="$monitored_services,$redis_service"
 fi
 
-# 升级时保留已有的 LIGHTOPS_SERVICES：管理员可能手工加入了自动探测覆盖不到的
-# 服务（如 Zabbix 的 zabbix-server / zabbix-agent2 / php-fpm），不能被默认值冲掉。
+# 升级时保留已有的 LIGHTOPS_SERVICES：它现在是"显式关注 + 允许重启"的名单
+# —— 面板列表由 collector 自动扫描 systemd 得出，这里的名字决定谁能被重启
+# （polkit 规则按这份名单渲染），不能被安装探测的默认值冲掉。
 if [ -f "$ENV_FILE" ]; then
     configured_services=$(sed -n 's/^LIGHTOPS_SERVICES=//p' "$ENV_FILE" | tail -n 1 | tr -d ' ')
     configured_services=${configured_services#\'}; configured_services=${configured_services%\'}

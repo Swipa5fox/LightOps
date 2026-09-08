@@ -278,14 +278,21 @@ def health(response: Response) -> dict:
     }
 
 
+def _visible_services() -> list[dict]:
+    """已卸载（not-found）的服务不进面板：它不是故障，是没了。"""
+    return [item for item in db.latest_services() if item.get("status") != "not-found"]
+
+
 @app.get("/api/summary")
 def summary() -> dict:
     memory = psutil.virtual_memory()
     disk = psutil.disk_usage("/")
-    services = db.latest_services()
+    services = _visible_services()
     # 使用方标注是"现在"的关系而非历史采样，实时计算（ownership 内部带 30s 缓存）。
     for item in services:
         item["used_by"] = ownership.used_by(item["service"])
+        # 只有配置清单里的服务在 polkit 规则内，其余自动发现的不可重启。
+        item["managed"] = item["service"] in settings.services
     return {
         "metric": db.latest_metric(),
         "services": services,
@@ -350,7 +357,7 @@ def metrics(
 
 @app.get("/api/services")
 def services() -> dict:
-    return {"services": db.latest_services(), "whitelist": settings.services}
+    return {"services": _visible_services(), "whitelist": list(settings.services)}
 
 
 @app.get("/api/alerts")

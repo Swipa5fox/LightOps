@@ -73,26 +73,148 @@ def _detect_buckets(service: str) -> list[str]:
             continue
         text += "\n" + _read_text(env_path)
 
-    # Preserve first-seen order while deduplicating.
+# Preserve first-seen order while deduplicating.
     return list(dict.fromkeys(_BUCKET_PATTERN.findall(text)))
 
 
-def service_states() -> list[dict[str, str]]:
-    values: list[dict[str, str]] = []
-    for service in settings.services:
-        try:
-            result = _systemctl("is-active", service)
-            status = result.stdout.strip() or "unknown"
-            detail = result.stderr.strip()
-        except (OSError, subprocess.SubprocessError) as exc:
-            status = "unknown"
-            detail = str(exc)
+# 自动发现要剔除的 systemd 内部/一次性 unit，否则面板会被 dbus、getty 之流淹没。
+_DISCOVER_NOISE = (
+    "systemd-",
+    "dbus",
+    "dracut-",
+    "kmod-",
+    "initrd-",
+    "user@",
+    "user-runtime-dir@",
+    "getty@",
+    "serial-getty@",
+    "autovt@",
+    "container-getty@",
+    "debug-shell",
+    "rescue",
+    "emergency",
+    "system-update-",
+    "lvm2-",
+    "system-setup-",
+)
+
+
+def _systemctl_lines(*args: str, timeout: int = 10) -> list[str]:
+    result = _systemctl(*args, timeout=timeout)
+    return [line for line in result.stdout.splitlines() if line.strip()]
+
+
+def _loaded_units() -> dict[str, dict[str, str]]:
+    """unit 名 -> 运行时状态，来自 `list-units --all`（含已加载但未启动的）。"""
+    states: dict[str, dict[str, str]] = {}
+    for line in _systemctl_lines(
+        "list-units", "--type=service", "--all", "--plain", "--no-legend", "--no-pager"
+    ):
+        parts = line.split(None, 4)
+        if len(parts) < 4:
+            continue
+        unit = parts[0]
+        if not unit.endswith(".service"):
+            continue
+        states[unit[: -len(".service")]] = {
+            "load": parts[1],
+            "active": parts[2],
+            "sub": parts[3],
+        }
+    return states
+
+
+def _enabled_units() -> set[str]:
+    """`list-unit-files` 里开机自启的服务名（unit 被卸载后自然消失）。"""
+    names: set[str] = set()
+    for line in _systemctl_lines(
+        "list-unit-files", "--type=service", "--plain", "--no-legend", "--no-pager"
+    ):
+        parts = line.split(None, 2)
+        if len(parts) < 2:
+            continue
+        unit, state = parts[0], parts[1]
+        if not unit.endswith(".service") or not state.startswith("enabled"):
+            continue
+        names.add(unit[: -len(".service")])
+    return names
+
+
+def _is_noise(name: str) -> bool:
+    return name.startswith(_DISCOVER_NOISE)
+
+
+def discovered_services() -> list[str]:
+    """本机真实存在的受管服务 = 扫描结果 ∪ LIGHTOPS_SERVICES。
+
+    配置清单里的名字永远排在前面，卸载掉的会被 service_states 标记成
+    not-found 而不是"挂了"，前端据此隐藏。
+    """
+    try:
+        loaded = _loaded_units()
+        enabled = _enabled_units()
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.warning("service discovery failed: %s", exc)
+        return list(settings.services)
+
+    found: set[str] = set()
+    for name, info in loaded.items():
+        if info.get("active") == "active" and not _is_noise(name):
+            found.add(name)
+    found.update(name for name in enabled if not _is_noise(name))
+    found.difference_update(settings.services)
+    return [*settings.services, *sorted(found)]
+
+
+def _unit_state(service: str) -> tuple[str, str, str]:
+    """(LoadState, ActiveState, Type)；unit 不存在时 LoadState 为 not-found。"""
+    unit = service if service.endswith(".service") else f"{service}.service"
+    try:
+        result = _systemctl(
+            "show",
+            unit,
+            "-p",
+            "LoadState",
+            "-p",
+            "ActiveState",
+            "-p",
+            "Type",
+            "--value",
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.warning("systemctl show %s failed: %s", unit, exc)
+        return "unknown", "", ""
+    values = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    # systemd < 247 不认 --value，会输出 Key=Value；两种格式都吃掉。
+    parsed = [value.partition("=")[2] or value for value in values]
+    load = parsed[0] if parsed else "not-found"
+    active = parsed[1] if len(parsed) > 1 else ""
+    unit_type = parsed[2] if len(parsed) > 2 else ""
+    return load or "not-found", active, unit_type
+
+
+def service_states() -> list[dict[str, Any]]:
+    values: list[dict[str, Any]] = []
+    for service in discovered_services():
+        load, active, unit_type = _unit_state(service)
+        # 一次性任务（cloud-init / rc-local / kdump 之类）不是"服务状态"，不进面板。
+        if unit_type == "oneshot":
+            continue
+        installed = load != "not-found"
+        if not installed:
+            status = "not-found"
+        elif load == "masked":
+            status = "masked"
+        else:
+            status = active or "unknown"
         values.append(
             {
                 "service": service,
                 "status": status[:64],
-                "detail": detail[:500],
-                "buckets": _detect_buckets(service),
+                "detail": load if not installed else "",
+                "buckets": _detect_buckets(service) if installed else [],
+                "installed": installed,
             }
         )
     return values
@@ -152,15 +274,16 @@ def evaluate_alerts(
 
     for item in services:
         service = item["service"]
-        if item["status"] == "active":
+        # 已卸载的服务不该继续刷 critical：它没"挂"，它是没了。
+        if item["status"] == "active" or not item.get("installed", True):
             db.resolve_alert("service", service)
-        else:
-            db.create_alert(
-                "service",
-                service,
-                "critical",
-                f"服务 {service} 当前状态为 {item['status']}",
-            )
+            continue
+        db.create_alert(
+            "service",
+            service,
+            "critical",
+            f"服务 {service} 当前状态为 {item['status']}",
+        )
 
 
 def collect_once() -> dict[str, Any]:

@@ -431,7 +431,7 @@
                   </div>
                 </div>
                 <button
-                  v-if="isAdmin"
+                  v-if="isAdmin && service.managed"
                   type="button"
                   class="small-button"
                   :disabled="restartBusy === service.service"

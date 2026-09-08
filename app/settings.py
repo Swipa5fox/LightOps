@@ -20,6 +20,12 @@ def _env_number(name: str, default: int | float, cast: type) -> int | float:
 
 
 def _services() -> tuple[str, ...]:
+    """管理员显式关注的服务（LIGHTOPS_SERVICES）。
+
+    面板列表由 collector 自动扫描 systemd 得出，这份名单是补充语义：
+    名字永远出现在列表里（即便已卸载也只是被标记成 not-found 后隐藏），
+    且只有这里的名字可重启 —— polkit 规则按这份名单渲染。
+    """
     values = tuple(
         item.strip()
         for item in os.getenv("LIGHTOPS_SERVICES", "nginx").split(",")

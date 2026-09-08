@@ -318,18 +318,18 @@ def latest_metric() -> dict[str, Any] | None:
 
 
 def latest_services() -> list[dict[str, Any]]:
+    """只取最新那一批采样。
+
+    服务被卸载后就不再出现在采样里；若按"每个服务各自的最新一条"取，
+    它会停在卸载前那条 active 记录上，面板永远显示一个已经不存在的服务。
+    """
     with connect() as conn:
         rows = conn.execute(
             """
-            SELECT s.ts, s.service, s.status, s.detail, s.buckets
-            FROM service_samples AS s
-            INNER JOIN (
-                SELECT service, MAX(ts) AS max_ts
-                FROM service_samples
-                GROUP BY service
-            ) AS latest
-            ON latest.service = s.service AND latest.max_ts = s.ts
-            ORDER BY s.service
+            SELECT ts, service, status, detail, buckets
+            FROM service_samples
+            WHERE ts = (SELECT MAX(ts) FROM service_samples)
+            ORDER BY service
             """
         ).fetchall()
     values = []
