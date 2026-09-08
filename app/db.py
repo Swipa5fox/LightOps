@@ -359,6 +359,44 @@ def metric_history(minutes: int, max_points: int = 720) -> list[dict[str, Any]]:
     return sampled
 
 
+def previous_service_states() -> dict[str, str]:
+    """上一批采样的服务状态。
+
+    用来区分"跑着跑着挂了"（要告警）和"本来就没起来"（手动停掉、装了没启用，不告警）。
+    """
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT service, status FROM service_samples
+            WHERE ts = (
+                SELECT DISTINCT ts FROM service_samples
+                ORDER BY ts DESC LIMIT 1 OFFSET 1
+            )
+            """
+        ).fetchall()
+    return {row["service"]: row["status"] for row in rows}
+
+
+def resolve_stale_service_alerts(monitored: list[str]) -> None:
+    """关闭已不在监控列表里的服务的告警。
+
+    服务卸载后不会再被采集，没有人替它收尾，告警会永远挂在面板上。
+    """
+    if not monitored:
+        return
+    placeholders = ",".join("?" * len(monitored))
+    with connect() as conn:
+        conn.execute(
+            f"""
+            UPDATE alerts
+            SET status = 'resolved', resolved_at = ?
+            WHERE kind = 'service' AND status = 'active'
+              AND target NOT IN ({placeholders})
+            """,
+            (utc_now(), *monitored),
+        )
+
+
 def active_alerts(limit: int = 100) -> list[dict[str, Any]]:
     with connect() as conn:
         rows = conn.execute(

@@ -273,10 +273,18 @@ def evaluate_alerts(
         "disk", metric["disk_percent"], settings.disk_threshold, "磁盘使用率"
     )
 
+    previous = db.previous_service_states()
+    monitored: set[str] = set()
     for item in services:
         service = item["service"]
+        monitored.add(service)
         # 已卸载的服务不该继续刷 critical：它没"挂"，它是没了。
-        if item["status"] == "active" or not item.get("installed", True):
+        # 同理，一直没在运行的服务（手动停掉、装了没启用）也不是故障。
+        if (
+            item["status"] == "active"
+            or not item.get("installed", True)
+            or previous.get(service) != "active"
+        ):
             db.resolve_alert("service", service)
             continue
         db.create_alert(
@@ -285,6 +293,7 @@ def evaluate_alerts(
             "critical",
             f"服务 {service} 当前状态为 {item['status']}",
         )
+    db.resolve_stale_service_alerts(sorted(monitored))
 
 
 def collect_once() -> dict[str, Any]:
