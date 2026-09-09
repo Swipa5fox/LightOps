@@ -36,6 +36,54 @@ def _services() -> tuple[str, ...]:
     return values
 
 
+# 系统自带、跟业务无关的杂项服务：列进面板只会稀释注意力。
+# 想看哪个，把它从 LIGHTOPS_SERVICE_IGNORE 的"减项"里去掉不现实 —— 直接写进
+# LIGHTOPS_SERVICES 即可，白名单优先级最高。
+_DEFAULT_IGNORED_SERVICES = frozenset(
+    {
+        "acpid",
+        "auditd",
+        "gssproxy",
+        "iscsi",
+        "iscsid",
+        "iscsi-onboot",
+        "iscsi-shutdown",
+        "iscsiuio",
+        "kdump",
+        "microcode",
+        "NetworkManager-dispatcher",
+        "NetworkManager-wait-online",
+        "nis-domainname",
+        "nv_gpu_shutdown_pm",
+        "polkit",
+        "qemu-guest-agent",
+        "rc-local",
+        "rpcbind",
+        "rpc-statd",
+        "rpc-statd-notify",
+        "selinux-autorelabel-mark",
+        "sssd",
+        "tuned",
+    }
+)
+
+
+def _ignored_services() -> frozenset[str]:
+    """默认杂项名单 ∪ LIGHTOPS_SERVICE_IGNORE 里管理员追加的名字。
+
+    这是"少看什么"的黑名单，比"多看什么"的白名单好维护：新装的业务服务
+    自动出现，系统杂项一次拉黑长期有效。
+    """
+    extra = {
+        item.strip()
+        for item in os.getenv("LIGHTOPS_SERVICE_IGNORE", "").split(",")
+        if item.strip()
+    }
+    if any(not _SERVICE_NAME.fullmatch(item) for item in extra):
+        raise RuntimeError("LIGHTOPS_SERVICE_IGNORE contains an invalid systemd unit name")
+    return _DEFAULT_IGNORED_SERVICES | extra
+
+
 def _service_labels() -> dict[str, str]:
     """`LIGHTOPS_SERVICE_LABELS='nginx:LightOps 面板 / Zabbix Web,php-fpm:Zabbix Web'`
 
@@ -72,6 +120,7 @@ class Settings:
         "LIGHTOPS_SYSTEMCTL_PATH", "/usr/bin/systemctl"
     )
     services: tuple[str, ...] = _services()
+    ignored_services: frozenset[str] = field(default_factory=_ignored_services)
     service_labels: dict[str, str] = field(default_factory=_service_labels)
     collect_interval_seconds: int = _env_number("LIGHTOPS_COLLECT_INTERVAL", 60, int)
     retention_days: int = _env_number("LIGHTOPS_RETENTION_DAYS", 7, int)

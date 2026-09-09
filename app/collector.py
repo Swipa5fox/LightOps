@@ -144,6 +144,11 @@ def _is_noise(name: str) -> bool:
     return name.startswith(_DISCOVER_NOISE)
 
 
+def _is_hidden(name: str) -> bool:
+    """systemd 内部件 + 管理员拉黑的系统杂项，都不该进面板。"""
+    return _is_noise(name) or name in settings.ignored_services
+
+
 def discovered_services() -> list[str]:
     """本机真实存在的受管服务 = 扫描结果 ∪ LIGHTOPS_SERVICES。
 
@@ -159,9 +164,9 @@ def discovered_services() -> list[str]:
 
     found: set[str] = set()
     for name, info in loaded.items():
-        if info.get("active") == "active" and not _is_noise(name):
+        if info.get("active") == "active" and not _is_hidden(name):
             found.add(name)
-    found.update(name for name in enabled if not _is_noise(name))
+    found.update(name for name in enabled if not _is_hidden(name))
     found.difference_update(settings.services)
     return [*settings.services, *sorted(found)]
 

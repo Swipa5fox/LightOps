@@ -1,3 +1,16 @@
+# 🎉 版本 0.1.4.8 更新日志
+
+## LightOps 轻量服务器监控系统版本更新
+
+发布日期：2026-09-09
+
+### 调整
+
+- **服务列表精简**：自动发现会连 acpid / auditd / polkit / rpcbind / sssd / qemu-guest-agent 这类系统杂项一起列出来，稀释注意力。现在内置一份杂项黑名单，默认只留真正有业务意义的服务（本机从 21 个减到 11 个：nginx、lightops、NetworkManager、chronyd、containerd、crond、docker、firewalld、rsyslog、sshd、tat_agent）。
+- **新增 `LIGHTOPS_SERVICE_IGNORE`**：在内置黑名单之外追加不想看到的服务名，写在服务器配置里，升级时保留。想"反悔"看某个被拉黑的服务，把它写进 `LIGHTOPS_SERVICES` 即可——白名单优先级最高。
+
+---
+
 # 🎉 版本 0.1.4.7 更新日志
 
 ## LightOps 轻量服务器监控系统版本更新

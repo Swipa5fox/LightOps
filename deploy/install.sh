@@ -289,6 +289,8 @@ lightops_write_env_setting "$ENV_FILE" LIGHTOPS_SUDO_PATH "$sudo_path"
 lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_COLLECT_INTERVAL 60
 # 服务语义标注（可选）：自动识别给不出关系时的人肉补充，升级时保留已有值。
 lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_SERVICE_LABELS ""
+# 服务黑名单（可选）：在内置的系统杂项名单之外，追加不想在面板看到的服务名。
+lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_SERVICE_IGNORE ""
 lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_RETENTION_DAYS 7
 lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_CPU_THRESHOLD 85
 lightops_ensure_env_setting "$ENV_FILE" LIGHTOPS_MEMORY_THRESHOLD 85
